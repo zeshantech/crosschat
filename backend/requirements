@@ -1,0 +1,43 @@
+flow will be like
+- user will connect woocommerce/shopify store with our platform
+- when user replace order we will show order in our robocall dashboard
+    - order will be in pending or in process (based on customization)
+    - if in process bot will push call in queue
+    - if pending show button to admin and admin will have to click on call button to push call in queue
+
+Call bot:
+- will check queue and call user phone number
+- bot will confirm order status by user (by voice or keypad)
+- once confirmed we will update order status to confirmed or cancelled based on user input
+- we will call woocommerce/shopify api to update order status
+- we will send notification to user (sms/email/push) about order status
+
+- we will have retry mechanism if call fails or user does not respond
+- we will have reporting dashboard to see call stats, order stats etc.
+- we will have admin panel to customize call bots
+
+Customization be like:
+- like immediately calls or click on call button for call
+- can change voice
+- weither to use keypad or voice confirmation
+    - for we will use simple twillio voice recognition
+    - for voice recognition we will use gpt based voice recognition
+        - user can provide its own apikey
+        - or can use platform gpt apikey (will charge extra credits 0.5 credit per min of call)
+- can change init lines and what he want to user to user initially
+
+Subscription:
+- we will have 2 types of subscription
+    - credit based (1 call = 1 credit)
+    - monthly package (unlimited calls per month)
+- addons feature and provide 100 credits (if base on calls) or 7 days margin (if monthly package)
+
+Settings
+- basic auth settings (will update by time)
+
+
+
+
+Technical details:
+- when user place order we will use webhook to get order details and save in our supabase db
+- in FE we will show order details on real-time using supabase real-time features
