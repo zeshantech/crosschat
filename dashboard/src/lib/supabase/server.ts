@@ -5,12 +5,6 @@ import { createServerClient } from "@supabase/ssr";
 import { type CookieOptions } from "@supabase/ssr";
 import { publicEnv } from "@/lib/env";
 
-type Cookie = {
-  name: string;
-  value: string;
-  options: CookieOptions;
-};
-
 export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
 
