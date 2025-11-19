@@ -31,14 +31,36 @@ export type Participant = {
   email?: string;
 };
 
+export type MessageAttachmentType =
+  | "image"
+  | "video"
+  | "audio"
+  | "voice"
+  | "document"
+  | "contact"
+  | "location"
+  | "poll"
+  | "event"
+  | "link"
+  | "sticker"
+  | "other";
+
 export type MessageAttachment = {
   id: string;
-  type: "image" | "video" | "audio" | "document" | "other";
+  type: MessageAttachmentType;
   name: string;
   mimeType?: string;
   sizeInBytes?: number;
   previewUrl?: string;
   downloadUrl?: string;
+  durationSeconds?: number;
+  waveform?: number[];
+  contact?: { name: string; phone: string };
+  location?: { title: string; subtitle?: string; mapImageUrl?: string };
+  poll?: { question: string; options: Array<{ id: string; label: string; votes?: number }>; allowsMultiple?: boolean };
+  event?: { title: string; date: string; location?: string };
+  link?: { url: string; title?: string; description?: string; imageUrl?: string };
+  stickerUrl?: string;
 };
 
 export type MessageReaction = {
@@ -62,6 +84,8 @@ export type Message = {
   isInbound: boolean;
   metadata?: Record<string, unknown>;
   isStarred?: boolean;
+  isPinned?: boolean;
+  editedAt?: string;
 };
 
 export type Conversation = {

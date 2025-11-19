@@ -3,16 +3,24 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import { nanoid } from "nanoid";
 import {
   Archive,
   ArrowLeft,
-  Camera,
+  BarChart2,
+  CalendarDays,
   CircleDashed,
+  Copy,
   Download,
+  Edit2,
   FileText,
   Filter,
+  Flag,
   Forward,
+  Image as ImageIcon,
   Info,
+  Link2,
+  MapPin,
   MessageCircle,
   MessageSquarePlus,
   Mic,
@@ -21,15 +29,22 @@ import {
   Pin,
   Reply,
   Search,
+  Scissors,
   Send,
   ShieldAlert,
   Smile,
+  Sticker,
   Star,
   Tag,
   Trash2,
   User2,
+  Video as VideoIcon,
+  Music2,
+  RotateCcw,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
+import type { LucideIcon } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +56,9 @@ import {
   ContextMenuItem,
   ContextMenuLabel,
   ContextMenuSeparator,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import {
@@ -65,15 +83,28 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Separator } from "@/components/ui/separator";
 import { getPlatformMeta } from "@/lib/platforms";
 import { useChatStore } from "@/lib/state/use-chat-store";
-import type { Conversation, Message, MessageAttachment, MessagingPlatform } from "@/lib/types/chat";
+import type {
+  Conversation,
+  Message,
+  MessageAttachment,
+  MessageAttachmentType,
+  MessagingPlatform,
+} from "@/lib/types/chat";
 import { cn } from "@/lib/utils";
 
 dayjs.extend(relativeTime);
 
+type DraftAttachmentKind = MessageAttachmentType;
+
 type DraftAttachment = {
   id: string;
-  type: "document" | "image" | "contact" | "audio";
+  kind: DraftAttachmentKind;
   name: string;
+  previewUrl?: string;
+  file?: File;
+  metadata?: Record<string, unknown>;
+  sizeLabel?: string;
+  durationSeconds?: number;
 };
 
 const STATUS_FILTERS = [
@@ -84,6 +115,106 @@ const STATUS_FILTERS = [
 ] as const;
 
 type StatusFilter = (typeof STATUS_FILTERS)[number]["id"];
+
+const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🙏"] as const;
+
+const ATTACHMENT_PICKER_ITEMS: Array<{
+  id: DraftAttachmentKind;
+  label: string;
+  description: string;
+  icon: LucideIcon;
+  accent: string;
+  requiresFile?: boolean;
+  accept?: string;
+}> = [
+  {
+    id: "image",
+    label: "Photo",
+    description: "PNG, JPG, HEIC",
+    icon: ImageIcon,
+    accent: "from-pink-500 to-orange-500",
+    requiresFile: true,
+    accept: "image/*",
+  },
+  {
+    id: "video",
+    label: "Video",
+    description: "MP4, MOV",
+    icon: VideoIcon,
+    accent: "from-rose-500 to-purple-500",
+    requiresFile: true,
+    accept: "video/*",
+  },
+  {
+    id: "audio",
+    label: "Audio",
+    description: "MP3, WAV",
+    icon: Music2,
+    accent: "from-indigo-500 to-cyan-500",
+    requiresFile: true,
+    accept: "audio/*",
+  },
+  {
+    id: "voice",
+    label: "Voice note",
+    description: "Recordings",
+    icon: Mic,
+    accent: "from-sky-500 to-emerald-500",
+    requiresFile: true,
+    accept: "audio/*",
+  },
+  {
+    id: "document",
+    label: "Document",
+    description: "PDF, DOCX",
+    icon: FileText,
+    accent: "from-slate-500 to-slate-700",
+    requiresFile: true,
+    accept: ".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip",
+  },
+  {
+    id: "contact",
+    label: "Contact",
+    description: "Share details",
+    icon: User2,
+    accent: "from-emerald-500 to-lime-500",
+  },
+  {
+    id: "location",
+    label: "Location",
+    description: "Share a pin",
+    icon: MapPin,
+    accent: "from-amber-500 to-orange-600",
+  },
+  {
+    id: "poll",
+    label: "Poll",
+    description: "Ask a question",
+    icon: BarChart2,
+    accent: "from-blue-500 to-violet-500",
+  },
+  {
+    id: "event",
+    label: "Event",
+    description: "Meeting invite",
+    icon: CalendarDays,
+    accent: "from-fuchsia-500 to-purple-500",
+  },
+  {
+    id: "link",
+    label: "Link",
+    description: "Share a URL",
+    icon: Link2,
+    accent: "from-cyan-500 to-blue-500",
+  },
+  {
+    id: "sticker",
+    label: "Sticker",
+    description: "Add some fun",
+    icon: Sticker,
+    accent: "from-yellow-500 to-red-500",
+  },
+] as const;
 
 export function InboxView() {
   const {
@@ -777,6 +908,7 @@ type ConversationDetailProps = {
 function ConversationDetail({ conversationId, onOpenProfile }: ConversationDetailProps) {
   const {
     conversations,
+    teamMembers,
     markConversationRead,
     markConversationUnread,
     toggleArchiveConversation,
@@ -789,79 +921,162 @@ function ConversationDetail({ conversationId, onOpenProfile }: ConversationDetai
     sendMessage,
     deleteMessage,
     toggleStarMessage,
+    togglePinMessage,
+    editMessage,
+    toggleReaction,
   } = useChatStore();
 
   const conversation = conversations.find((item) => item.id === conversationId);
   const [draft, setDraft] = useState("");
-  const [attachments, setAttachments] = useState<DraftAttachment[]>([]);
+  const [composerAttachments, setComposerAttachments] = useState<DraftAttachment[]>([]);
+  const [pendingFileKind, setPendingFileKind] = useState<DraftAttachmentKind | null>(null);
+  const [replyingMessage, setReplyingMessage] = useState<Message | null>(null);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   if (!conversation) return null;
 
   const meta = getPlatformMeta(conversation.platform);
-  const hasUnread = conversation.unreadCount > 0;
+  const currentUserId = teamMembers[0]?.id ?? "member_local";
+  const editingMessage = editingMessageId
+    ? conversation.messages.find((message) => message.id === editingMessageId) ?? null
+    : null;
 
-  const handleAddAttachment = (type: DraftAttachment["type"], name: string) => {
-    if (type === "document") {
-      fileInputRef.current?.click();
+  const handleAttachmentPick = (kind: DraftAttachmentKind) => {
+    const option = ATTACHMENT_PICKER_ITEMS.find((item) => item.id === kind);
+    if (option?.requiresFile) {
+      setPendingFileKind(kind);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+        fileInputRef.current.accept = option.accept ?? "*/*";
+        fileInputRef.current.click();
+      }
       return;
     }
-    const id =
-      typeof crypto !== "undefined" && crypto.randomUUID
-        ? crypto.randomUUID()
-        : Math.random().toString(36).slice(2);
-    setAttachments((current) => [...current, { id, type, name }]);
+    setComposerAttachments((current) => [...current, createTemplateDraft(kind)]);
   };
 
   const handleFileSelection = (files: FileList | null) => {
-    if (!files) return;
-    const selected = Array.from(files).map((file) => ({
-      id:
-        typeof crypto !== "undefined" && crypto.randomUUID
-          ? crypto.randomUUID()
-          : Math.random().toString(36).slice(2),
-      type: "document" as const,
-      name: file.name,
-    }));
-    setAttachments((current) => [...current, ...selected]);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+    if (!files?.length) {
+      setPendingFileKind(null);
+      return;
     }
+    const kind = pendingFileKind ?? "document";
+    const drafts = Array.from(files).map((file) => {
+      const id = nanoid(8);
+      const previewUrl =
+        kind === "image" || kind === "video" || kind === "sticker"
+          ? URL.createObjectURL(file)
+          : undefined;
+      return {
+        id: `draft_${id}`,
+        kind,
+        name: file.name,
+        file,
+        previewUrl,
+        sizeLabel: formatBytes(file.size),
+      } satisfies DraftAttachment;
+    });
+    setComposerAttachments((prev) => [...prev, ...drafts]);
+    setPendingFileKind(null);
   };
+
+  const handleRemoveAttachment = (attachmentId: string) => {
+    setComposerAttachments((prev) => prev.filter((attachment) => attachment.id !== attachmentId));
+  };
+
+  const handleCopyMessage = (message: Message) => {
+    if (!message.content) return;
+    navigator.clipboard
+      ?.writeText(message.content)
+      .then(() => toast.success("Message copied"))
+      .catch(() => toast.error("Unable to copy message"));
+  };
+
+  const handleDownloadAttachments = (message: Message) => {
+    if (!message.attachments?.length) {
+      toast.info("No attachments to download");
+      return;
+    }
+    message.attachments.forEach((attachment) => {
+      if (attachment.downloadUrl) {
+        window.open(attachment.downloadUrl, "_blank");
+      } else if (attachment.previewUrl) {
+        window.open(attachment.previewUrl, "_blank");
+      }
+    });
+  };
+
+  const handleStartEdit = (message: Message) => {
+    setEditingMessageId(message.id);
+    setDraft(message.content);
+    setReplyingMessage(null);
+    setComposerAttachments([]);
+  };
+
+  const cancelEditing = () => {
+    setEditingMessageId(null);
+    setDraft("");
+  };
+
+  const handleReply = (message: Message) => {
+    setReplyingMessage(message);
+  };
+
+  const cancelReply = () => setReplyingMessage(null);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!draft.trim() && attachments.length === 0) {
+    if (!draft.trim() && composerAttachments.length === 0) {
       return;
     }
 
-    const preparedAttachments: MessageAttachment[] | undefined = attachments.length
-      ? attachments.map((attachment) => ({
-          id: attachment.id,
-          type:
-            attachment.type === "image"
-              ? "image"
-              : attachment.type === "audio"
-              ? "audio"
-              : attachment.type === "contact"
-              ? "other"
-              : "document",
-          name: attachment.name,
-        }))
+    if (editingMessageId) {
+      if (!draft.trim()) {
+        toast.error("Edited message cannot be empty");
+        return;
+      }
+      editMessage(conversation.id, editingMessageId, draft.trim());
+      cancelEditing();
+      setDraft("");
+      return;
+    }
+
+    const preparedAttachments: MessageAttachment[] | undefined = composerAttachments.length
+      ? composerAttachments.map(convertDraftToMessageAttachment)
       : undefined;
+
+    const metadata =
+      replyingMessage != null
+        ? {
+            replyTo: replyingMessage.id,
+            replyPreview: replyingMessage.content,
+            replyAuthor: replyingMessage.isInbound ? conversation.title : "You",
+          }
+        : undefined;
 
     sendMessage(conversation.id, {
       content: draft.trim(),
       attachments: preparedAttachments,
+      metadata,
     });
 
     setDraft("");
-    setAttachments([]);
+    setComposerAttachments([]);
+    setReplyingMessage(null);
   };
 
   const handleDeleteMessage = (messageId: string) => {
     deleteMessage(conversation.id, messageId);
+    if (editingMessageId === messageId) {
+      cancelEditing();
+    }
+    if (replyingMessage?.id === messageId) {
+      cancelReply();
+    }
   };
+
+  const hasUnread = conversation.unreadCount > 0;
 
   return (
     <div className="flex h-full flex-col">
@@ -951,43 +1166,62 @@ function ConversationDetail({ conversationId, onOpenProfile }: ConversationDetai
             <MessageBubble
               key={message.id}
               message={message}
+              isOwn={message.senderId === currentUserId}
               onDelete={() => handleDeleteMessage(message.id)}
-              onReply={() => toast.info("Reply coming soon")}
+              onReply={() => handleReply(message)}
               onForward={() => toast.info("Forward coming soon")}
               onFavorite={() => toggleStarMessage(conversation.id, message.id)}
               onInfo={() => toast.info("Message info coming soon")}
+              onCopy={() => handleCopyMessage(message)}
+              onDownload={() => handleDownloadAttachments(message)}
+              onPin={() => togglePinMessage(conversation.id, message.id)}
+              onReport={() => toast.success("Message reported")}
+              onEdit={() => handleStartEdit(message)}
+              onReact={(emoji) => toggleReaction(conversation.id, message.id, emoji, currentUserId)}
             />
           ))}
         </div>
       </ScrollArea>
 
-      {attachments.length > 0 && (
-        <div className="space-y-2 border-t border-border bg-muted/40 px-4 py-2 text-xs">
-          <p className="font-medium">Attachments</p>
-          <div className="flex flex-wrap gap-2">
-            {attachments.map((attachment) => (
-              <Badge key={attachment.id} variant="outline" className="gap-2">
-                {attachment.name}
-                <button
-                  type="button"
-                  onClick={() =>
-                    setAttachments((current) =>
-                      current.filter((item) => item.id !== attachment.id)
-                    )
-                  }
-                  className="rounded-full px-1 text-[10px] text-muted-foreground hover:text-foreground"
-                >
-                  ×
-                </button>
-              </Badge>
-            ))}
+      {replyingMessage && (
+        <div className="flex items-center justify-between border-t border-border bg-muted/40 px-4 py-2 text-xs">
+          <div>
+            <p className="text-muted-foreground">Replying to {replyingMessage.isInbound ? conversation.title : "You"}</p>
+            <p className="line-clamp-1 font-medium">{replyingMessage.content}</p>
           </div>
+          <Button variant="ghost" size="icon" onClick={cancelReply}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
+      {editingMessage && (
+        <div className="flex items-center justify-between border-t border-border bg-muted/40 px-4 py-2 text-xs">
+          <div>
+            <p className="text-muted-foreground">Editing message</p>
+            <p className="line-clamp-1 font-medium">{editingMessage.content}</p>
+          </div>
+          <Button variant="ghost" size="icon" onClick={cancelEditing}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
+      {composerAttachments.length > 0 && (
+        <div className="space-y-3 border-t border-border bg-muted/40 px-4 py-3">
+          {composerAttachments.map((attachment) => (
+            <AttachmentComposerPreview
+              key={attachment.id}
+              attachment={attachment}
+              onRemove={() => handleRemoveAttachment(attachment.id)}
+            />
+          ))}
         </div>
       )}
 
       <form
         onSubmit={handleSubmit}
-        className="flex items-center gap-2 border-t border-border bg-background px-4 py-3"
+        className="flex items-end gap-2 border-t border-border bg-background px-4 py-3"
       >
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -995,19 +1229,27 @@ function ConversationDetail({ conversationId, onOpenProfile }: ConversationDetai
               <Paperclip className="h-5 w-5" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-40">
-            <DropdownMenuItem onSelect={() => handleAddAttachment("document", "Document.pdf")}>
-              <FileText className="mr-2 h-4 w-4" /> Document
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => handleAddAttachment("image", "Photo.jpg")}>
-              <Camera className="mr-2 h-4 w-4" /> Photo
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => handleAddAttachment("contact", "New contact")}>
-              <User2 className="mr-2 h-4 w-4" /> Contact
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => handleAddAttachment("audio", "Voice note.m4a")}>
-              <Mic className="mr-2 h-4 w-4" /> Audio
-            </DropdownMenuItem>
+          <DropdownMenuContent align="start" className="w-56">
+            {ATTACHMENT_PICKER_ITEMS.map((item) => (
+              <DropdownMenuItem
+                key={item.id}
+                onSelect={() => handleAttachmentPick(item.id)}
+                className="cursor-pointer"
+              >
+                <span
+                  className={cn(
+                    "mr-3 flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br text-white",
+                    item.accent
+                  )}
+                >
+                  <item.icon className="h-4 w-4" />
+                </span>
+                <div>
+                  <p className="text-sm font-medium">{item.label}</p>
+                  <p className="text-xs text-muted-foreground">{item.description}</p>
+                </div>
+              </DropdownMenuItem>
+            ))}
           </DropdownMenuContent>
         </DropdownMenu>
         <Button variant="ghost" size="icon" className="rounded-full" type="button">
@@ -1017,8 +1259,8 @@ function ConversationDetail({ conversationId, onOpenProfile }: ConversationDetai
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           className="flex-1 resize-none rounded-lg border border-border bg-muted px-3 py-2 text-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          rows={1}
-          placeholder="Type a message"
+          rows={composerAttachments.length > 0 || replyingMessage ? 2 : 1}
+          placeholder={editingMessage ? "Edit message" : "Type a message"}
         />
         <input
           ref={fileInputRef}
@@ -1028,68 +1270,106 @@ function ConversationDetail({ conversationId, onOpenProfile }: ConversationDetai
           onChange={(event) => handleFileSelection(event.target.files)}
         />
         <Button
-          type="button"
-          variant="ghost"
+          type="submit"
           size="icon"
           className="rounded-full"
-          onClick={() => toast.info("Voice message coming soon")}
         >
-          <Mic className="h-5 w-5" />
-        </Button>
-        <Button type="submit" size="icon" className="rounded-full">
           <Send className="h-4 w-4" />
         </Button>
       </form>
     </div>
   );
 }
-
 type MessageBubbleProps = {
   message: Message;
+  isOwn: boolean;
   onDelete: () => void;
   onReply: () => void;
   onForward: () => void;
   onFavorite: () => void;
   onInfo: () => void;
+  onReact: (emoji: string) => void;
+  onCopy: () => void;
+  onDownload: () => void;
+  onPin: () => void;
+  onReport: () => void;
+  onEdit: () => void;
 };
 
-function MessageBubble({ message, onDelete, onReply, onForward, onFavorite, onInfo }: MessageBubbleProps) {
-  const isOutbound = !message.isInbound;
+function MessageBubble({
+  message,
+  isOwn,
+  onDelete,
+  onReply,
+  onForward,
+  onFavorite,
+  onInfo,
+  onReact,
+  onCopy,
+  onDownload,
+  onPin,
+  onReport,
+  onEdit,
+}: MessageBubbleProps) {
   const timestamp = dayjs(message.createdAt).format("HH:mm");
+  const canEdit =
+    isOwn &&
+    dayjs(message.createdAt).isAfter(dayjs().subtract(15, "minute")) &&
+    (message.attachments?.length ?? 0) === 0;
+  const reactionMap = groupReactions(message.reactions);
 
   return (
-    <div className={cn("flex w-full", isOutbound ? "justify-end" : "justify-start")}>
+    <div className={cn("flex w-full", isOwn ? "justify-end" : "justify-start")}>
       <ContextMenu>
         <ContextMenuTrigger asChild>
           <div
             className={cn(
-              "max-w-[70%] rounded-lg px-3 py-2 shadow-sm",
-              isOutbound ? "bg-secondary text-secondary-foreground" : "bg-muted"
+              "relative max-w-[70%] rounded-2xl px-3 py-2 shadow-sm",
+              isOwn ? "bg-secondary text-secondary-foreground" : "bg-muted"
             )}
           >
+            {message.isPinned && (
+              <div className="absolute -top-4 right-2 flex items-center gap-1 text-[10px] uppercase text-muted-foreground">
+                <Pin className="h-3 w-3" /> Pinned
+              </div>
+            )}
+            {message.metadata && (message.metadata as Record<string, string>).replyPreview && (
+              <div className="mb-2 rounded-lg border border-border/60 bg-background/70 p-2 text-xs">
+                <p className="font-medium">
+                  {(message.metadata as Record<string, string>).replyAuthor ?? "Unknown"}
+                </p>
+                <p className="line-clamp-2 text-muted-foreground">
+                  {(message.metadata as Record<string, string>).replyPreview}
+                </p>
+              </div>
+            )}
             {message.attachments && message.attachments.length > 0 && (
-              <div className="mb-2 space-y-1 text-xs">
+              <div className="mb-2 space-y-2">
                 {message.attachments.map((attachment) => (
-                  <div
-                    key={attachment.id}
-                    className="flex items-center justify-between rounded-md border border-border bg-background px-2 py-1"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Download className="h-4 w-4 text-muted-foreground" />
-                      <span>{attachment.name ?? attachment.type}</span>
-                    </div>
-                    <Button variant="ghost" size="icon" className="h-6 w-6" type="button">
-                      <Download className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  <AttachmentBubblePreview key={attachment.id} attachment={attachment} />
                 ))}
               </div>
             )}
-            {message.content && <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>}
-            <div className="mt-1 flex items-center justify-end gap-2 text-[11px] text-muted-foreground">
+            {message.content && (
+              <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
+            )}
+            <div className="mt-1 flex flex-wrap items-center justify-end gap-2 text-[11px] text-muted-foreground">
               {message.isStarred && <Star className="h-3 w-3" />}
+              {message.editedAt && <span>Edited</span>}
               <span>{timestamp}</span>
             </div>
+            {reactionMap.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1">
+                {reactionMap.map(({ emoji, count }) => (
+                  <span
+                    key={emoji}
+                    className="flex items-center gap-1 rounded-full bg-background/70 px-2 py-0.5 text-xs"
+                  >
+                    {emoji} <span className="text-[10px] text-muted-foreground">{count}</span>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </ContextMenuTrigger>
         <ContextMenuContent>
@@ -1099,12 +1379,37 @@ function MessageBubble({ message, onDelete, onReply, onForward, onFavorite, onIn
           <ContextMenuItem onSelect={onForward}>
             <Forward className="mr-2 h-4 w-4" /> Forward
           </ContextMenuItem>
+          <ContextMenuSub>
+            <ContextMenuSubTrigger>React</ContextMenuSubTrigger>
+            <ContextMenuSubContent>
+              {REACTION_EMOJIS.map((emoji) => (
+                <ContextMenuItem key={emoji} onSelect={() => onReact(emoji)}>
+                  {emoji}
+                </ContextMenuItem>
+              ))}
+            </ContextMenuSubContent>
+          </ContextMenuSub>
+          <ContextMenuItem onSelect={onCopy}>
+            <Copy className="mr-2 h-4 w-4" /> Copy
+          </ContextMenuItem>
+          <ContextMenuItem onSelect={onDownload}>
+            <Download className="mr-2 h-4 w-4" /> Download
+          </ContextMenuItem>
+          <ContextMenuItem onSelect={onPin}>
+            <Pin className="mr-2 h-4 w-4" /> {message.isPinned ? "Unpin" : "Pin"}
+          </ContextMenuItem>
           <ContextMenuItem onSelect={onFavorite}>
             <Star className="mr-2 h-4 w-4" />
-            {message.isStarred ? "Remove from favorites" : "Add to favorites"}
+            {message.isStarred ? "Remove star" : "Star"}
           </ContextMenuItem>
           <ContextMenuItem onSelect={onInfo}>
             <Info className="mr-2 h-4 w-4" /> Message info
+          </ContextMenuItem>
+          <ContextMenuItem onSelect={onReport}>
+            <Flag className="mr-2 h-4 w-4" /> Report
+          </ContextMenuItem>
+          <ContextMenuItem disabled={!canEdit} onSelect={() => canEdit && onEdit()}>
+            <Edit2 className="mr-2 h-4 w-4" /> Edit
           </ContextMenuItem>
           <ContextMenuSeparator />
           <ContextMenuItem className="text-destructive" onSelect={onDelete}>
@@ -1116,6 +1421,425 @@ function MessageBubble({ message, onDelete, onReply, onForward, onFavorite, onIn
   );
 }
 
+type AttachmentComposerPreviewProps = {
+  attachment: DraftAttachment;
+  onRemove: () => void;
+};
+
+function AttachmentComposerPreview({ attachment, onRemove }: AttachmentComposerPreviewProps) {
+  const label =
+    ATTACHMENT_PICKER_ITEMS.find((item) => item.id === attachment.kind)?.label ?? "Attachment";
+
+  const renderBody = () => {
+    switch (attachment.kind) {
+      case "image":
+      case "sticker":
+        return (
+          <>
+            <div className="mt-2 overflow-hidden rounded-xl border border-dashed border-border/60 bg-black/5">
+              {attachment.previewUrl ? (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={attachment.previewUrl} alt={attachment.name} className="w-full object-cover" />
+                </>
+              ) : (
+                <div className="flex h-40 items-center justify-center text-xs text-muted-foreground">
+                  Image preview
+                </div>
+              )}
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2 text-xs">
+              <Button variant="ghost" size="sm" className="gap-1">
+                <Scissors className="h-3 w-3" /> Crop
+              </Button>
+              <Button variant="ghost" size="sm" className="gap-1">
+                <RotateCcw className="h-3 w-3" /> Rotate
+              </Button>
+            </div>
+            <Input className="mt-2 text-xs" placeholder="Add caption" />
+          </>
+        );
+      case "video":
+        return (
+          <>
+            <div className="mt-2 overflow-hidden rounded-xl border border-dashed border-border/60 bg-black/5">
+              {attachment.previewUrl ? (
+                <video controls src={attachment.previewUrl} className="w-full" />
+              ) : (
+                <div className="flex h-32 items-center justify-center text-xs text-muted-foreground">
+                  Video preview
+                </div>
+              )}
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2 text-xs">
+              <Button variant="ghost" size="sm" className="gap-1">
+                <Scissors className="h-3 w-3" /> Trim
+              </Button>
+              <Button variant="ghost" size="sm" className="gap-1">
+                <ImageIcon className="h-3 w-3" /> Cover
+              </Button>
+            </div>
+            <Input className="mt-2 text-xs" placeholder="Add caption" />
+          </>
+        );
+      case "audio":
+      case "voice":
+        return (
+          <div className="mt-2 rounded-xl border border-dashed border-border/60 bg-background/80 p-3">
+            <audio controls src={attachment.previewUrl} className="w-full" />
+            <p className="mt-2 text-xs text-muted-foreground">{attachment.name}</p>
+          </div>
+        );
+      case "document":
+        return (
+          <div className="mt-3 flex items-center justify-between rounded-xl border border-dashed border-border/60 bg-background/80 p-3">
+            <div className="flex items-center gap-3">
+              <FileText className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium">{attachment.name}</p>
+                <p className="text-xs text-muted-foreground">{attachment.sizeLabel ?? "Document"}</p>
+              </div>
+            </div>
+            <Badge variant="outline" className="text-[10px] uppercase">
+              Doc
+            </Badge>
+          </div>
+        );
+      case "contact":
+        return (
+          <div className="mt-2 rounded-xl border border-dashed border-border/60 bg-background/80 p-3 text-xs">
+            <p className="text-sm font-semibold">
+              {(attachment.metadata?.contact as { name?: string })?.name ?? attachment.name}
+            </p>
+            <p className="text-muted-foreground">
+              {(attachment.metadata?.contact as { phone?: string })?.phone ?? "+1 (555) 010-2020"}
+            </p>
+            <div className="mt-2 flex gap-2">
+              <Button size="sm" variant="secondary" className="text-xs">
+                Message
+              </Button>
+              <Button size="sm" variant="outline" className="text-xs">
+                Add contact
+              </Button>
+            </div>
+          </div>
+        );
+      case "location":
+        return (
+          <div className="mt-2 overflow-hidden rounded-xl border border-dashed border-border/60">
+            <div className="h-32 bg-gradient-to-br from-emerald-500/40 to-emerald-700/40">
+              <div className="flex h-full items-center justify-center text-xs text-white/70">
+                Map preview
+              </div>
+            </div>
+            <div className="px-3 py-2 text-xs">
+              <p className="font-semibold">
+                {(attachment.metadata?.location as { title?: string })?.title ?? attachment.name}
+              </p>
+              <p className="text-muted-foreground">
+                {(attachment.metadata?.location as { subtitle?: string })?.subtitle ?? "Shared location"}
+              </p>
+            </div>
+          </div>
+        );
+      case "poll":
+        return (
+          <div className="mt-2 space-y-2 rounded-xl border border-dashed border-border/60 bg-background/80 p-3 text-xs">
+            <p className="font-semibold">
+              {(attachment.metadata?.poll as { question?: string })?.question ?? attachment.name}
+            </p>
+            {((attachment.metadata?.poll as { options?: Array<{ id: string; label: string }> })
+              ?.options ?? []
+            ).map((option) => (
+              <div key={option.id} className="rounded-lg border border-border/60 bg-background px-2 py-1.5">
+                {option.label}
+              </div>
+            ))}
+          </div>
+        );
+      case "event":
+        return (
+          <div className="mt-2 rounded-xl border border-dashed border-border/60 bg-background/80 p-3 text-xs">
+            <p className="font-semibold">
+              {(attachment.metadata?.event as { title?: string })?.title ?? attachment.name}
+            </p>
+            <p className="text-muted-foreground">
+              {dayjs((attachment.metadata?.event as { date?: string })?.date ?? new Date().toISOString()).format(
+                "MMM D, h:mm A"
+              )}
+            </p>
+          </div>
+        );
+      case "link":
+        return (
+          <div className="mt-2 rounded-xl border border-dashed border-border/60 bg-background/80 p-3 text-xs">
+            <p className="font-semibold">
+              {(attachment.metadata?.link as { title?: string })?.title ?? attachment.name}
+            </p>
+            <p className="line-clamp-2 text-muted-foreground">
+              {(attachment.metadata?.link as { description?: string })?.description ?? "Shared link"}
+            </p>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              {(attachment.metadata?.link as { url?: string })?.url ?? "https://example.com"}
+            </p>
+          </div>
+        );
+      default:
+        return (
+          <div className="mt-2 rounded-xl border border-dashed border-border/60 bg-background/80 p-3 text-xs text-muted-foreground">
+            Attachment ready to send.
+          </div>
+        );
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border border-border bg-background/80 p-3 text-xs">
+      <div className="flex items-center justify-between text-[10px] uppercase text-muted-foreground">
+        <span>{label}</span>
+        <div className="flex items-center gap-2">
+          {attachment.sizeLabel && <span className="text-[10px] text-muted-foreground">{attachment.sizeLabel}</span>}
+          <Button variant="ghost" size="icon" onClick={onRemove}>
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </div>
+      {renderBody()}
+    </div>
+  );
+}
+
+type AttachmentBubblePreviewProps = {
+  attachment: MessageAttachment;
+};
+
+function AttachmentBubblePreview({ attachment }: AttachmentBubblePreviewProps) {
+  switch (attachment.type) {
+    case "image":
+    case "sticker":
+      return (
+        <div className="overflow-hidden rounded-xl bg-black/10">
+          {attachment.previewUrl ? (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={attachment.previewUrl} alt={attachment.name} className="w-full object-cover" />
+            </>
+          ) : (
+            <div className="flex h-40 items-center justify-center text-xs text-muted-foreground">
+              Image preview unavailable
+            </div>
+          )}
+        </div>
+      );
+    case "video":
+      return (
+        <div className="overflow-hidden rounded-xl bg-black/10">
+          {attachment.previewUrl ? (
+            <video controls src={attachment.previewUrl} className="w-full" />
+          ) : (
+            <div className="flex h-32 items-center justify-center text-xs text-muted-foreground">
+              Video preview unavailable
+            </div>
+          )}
+        </div>
+      );
+    case "audio":
+    case "voice":
+      return (
+        <div className="rounded-xl border border-border/70 bg-background/80 p-2">
+          <audio controls src={attachment.previewUrl} className="w-full" />
+        </div>
+      );
+    case "document":
+      return (
+        <div className="flex items-center justify-between rounded-xl border border-border/70 bg-background/80 px-2 py-1">
+          <div className="flex items-center gap-2">
+            <FileText className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs font-medium">{attachment.name}</span>
+          </div>
+          <Download className="h-4 w-4 text-muted-foreground" />
+        </div>
+      );
+    case "contact":
+      return (
+        <div className="rounded-xl border border-border/70 bg-background/80 px-3 py-2 text-xs">
+          <p className="font-semibold">{attachment.contact?.name ?? attachment.name}</p>
+          <p className="text-muted-foreground">{attachment.contact?.phone ?? "+1 (555) 010-2020"}</p>
+        </div>
+      );
+    case "location":
+      return (
+        <div className="overflow-hidden rounded-xl border border-border/70">
+          <div className="h-28 bg-gradient-to-br from-emerald-500/30 to-emerald-700/40" />
+          <div className="px-3 py-2 text-xs">
+            <p className="font-semibold">{attachment.location?.title ?? attachment.name}</p>
+            <p className="text-muted-foreground">{attachment.location?.subtitle ?? "Shared location"}</p>
+          </div>
+        </div>
+      );
+    case "poll":
+      return (
+        <div className="rounded-xl border border-border/70 bg-background/80 px-3 py-2 text-xs">
+          <p className="font-semibold">{attachment.poll?.question ?? attachment.name}</p>
+          <div className="mt-2 space-y-1">
+            {(attachment.poll?.options ?? []).map((option) => (
+              <div key={option.id} className="rounded-lg border border-border/50 bg-background px-2 py-1">
+                {option.label}
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    case "event":
+      return (
+        <div className="rounded-xl border border-border/70 bg-background/80 px-3 py-2 text-xs">
+          <p className="font-semibold">{attachment.event?.title ?? attachment.name}</p>
+          <p className="text-muted-foreground">
+            {dayjs(attachment.event?.date ?? new Date().toISOString()).format("MMM D, h:mm A")}
+          </p>
+        </div>
+      );
+    case "link":
+      return (
+        <div className="rounded-xl border border-border/70 bg-background/80 px-3 py-2 text-xs">
+          <p className="font-semibold">{attachment.link?.title ?? attachment.name}</p>
+          <p className="line-clamp-2 text-muted-foreground">
+            {attachment.link?.description ?? attachment.link?.url}
+          </p>
+        </div>
+      );
+    default:
+      return (
+        <div className="rounded-xl border border-border/70 bg-background/80 px-3 py-2 text-xs text-muted-foreground">
+          Attachment
+        </div>
+      );
+  }
+}
+
+function createTemplateDraft(kind: DraftAttachmentKind): DraftAttachment {
+  switch (kind) {
+    case "contact":
+      return {
+        id: `draft_contact_${nanoid(6)}`,
+        kind,
+        name: "New contact",
+        metadata: {
+          contact: { name: "Alex Morgan", phone: "+1 (555) 010-2020" },
+        },
+      };
+    case "location":
+      return {
+        id: `draft_location_${nanoid(6)}`,
+        kind,
+        name: "Pinned location",
+        metadata: {
+          location: {
+            title: "Robocall HQ",
+            subtitle: "123 Queen Street",
+          },
+        },
+      };
+    case "poll":
+      return {
+        id: `draft_poll_${nanoid(6)}`,
+        kind,
+        name: "Quick poll",
+        metadata: {
+          poll: {
+            question: "Which option works best?",
+            options: [
+              { id: "opt_a", label: "Option A" },
+              { id: "opt_b", label: "Option B" },
+              { id: "opt_c", label: "Option C" },
+            ],
+          },
+        },
+      };
+    case "event":
+      return {
+        id: `draft_event_${nanoid(6)}`,
+        kind,
+        name: "Calendar invite",
+        metadata: {
+          event: {
+            title: "Product Review",
+            date: new Date().toISOString(),
+            location: "Virtual",
+          },
+        },
+      };
+    case "link":
+      return {
+        id: `draft_link_${nanoid(6)}`,
+        kind,
+        name: "robocall.ai",
+        metadata: {
+          link: {
+            url: "https://robocall.ai",
+            title: "Robocall AI",
+            description: "Unified omni-channel inbox and AI assistant.",
+          },
+        },
+      };
+    case "sticker":
+      return {
+        id: `draft_sticker_${nanoid(6)}`,
+        kind,
+        name: "Fun sticker",
+        previewUrl:
+          "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&auto=format&fit=crop",
+      };
+    default:
+      return {
+        id: `draft_${kind}_${nanoid(6)}`,
+        kind,
+        name: `${kind} attachment`,
+      };
+  }
+}
+
+function convertDraftToMessageAttachment(attachment: DraftAttachment): MessageAttachment {
+  const base: MessageAttachment = {
+    id: attachment.id,
+    type: attachment.kind,
+    name: attachment.name,
+    previewUrl: attachment.previewUrl,
+    sizeInBytes: attachment.file?.size,
+  };
+
+  switch (attachment.kind) {
+    case "contact":
+      return { ...base, contact: attachment.metadata?.contact as MessageAttachment["contact"] };
+    case "location":
+      return { ...base, location: attachment.metadata?.location as MessageAttachment["location"] };
+    case "poll":
+      return { ...base, poll: attachment.metadata?.poll as MessageAttachment["poll"] };
+    case "event":
+      return { ...base, event: attachment.metadata?.event as MessageAttachment["event"] };
+    case "link":
+      return { ...base, link: attachment.metadata?.link as MessageAttachment["link"] };
+    default:
+      return base;
+  }
+}
+
+function formatBytes(bytes: number) {
+  if (!bytes) return "";
+  const units = ["B", "KB", "MB", "GB"];
+  const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  const value = bytes / Math.pow(1024, index);
+  return `${value.toFixed(1)} ${units[index]}`;
+}
+
+function groupReactions(reactions?: Message["reactions"]) {
+  if (!reactions?.length) return [];
+  const counts: Record<string, number> = {};
+  reactions.forEach((reaction) => {
+    counts[reaction.emoji] = (counts[reaction.emoji] ?? 0) + 1;
+  });
+  return Object.entries(counts).map(([emoji, count]) => ({ emoji, count }));
+}
 type ProfileSheetProps = {
   conversation: Conversation | null;
   open: boolean;

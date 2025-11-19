@@ -62,10 +62,18 @@ type InboxState = {
   toggleSpamConversation: (conversationId: string) => void;
   sendMessage: (
     conversationId: string,
-    payload: { content: string; attachments?: MessageAttachment[] }
+    payload: { content: string; attachments?: MessageAttachment[]; metadata?: Record<string, unknown> }
   ) => void;
   deleteMessage: (conversationId: string, messageId: string) => void;
   toggleStarMessage: (conversationId: string, messageId: string) => void;
+  togglePinMessage: (conversationId: string, messageId: string) => void;
+  editMessage: (conversationId: string, messageId: string, content: string) => void;
+  toggleReaction: (
+    conversationId: string,
+    messageId: string,
+    emoji: string,
+    reactedBy: string
+  ) => void;
 };
 
 type NotificationState = {
@@ -258,7 +266,8 @@ export const useChatStore = create<ChatStore>()(
             content: payload.content,
             createdAt,
             status: "sent",
-            attachments: payload.attachments,
+            attachments: payload.attachments ?? [],
+            metadata: payload.metadata,
             isInbound: false,
           };
           return {
@@ -293,6 +302,68 @@ export const useChatStore = create<ChatStore>()(
                 ? { ...message, isStarred: !message.isStarred }
                 : message
             ),
+          };
+        }),
+      })),
+    togglePinMessage: (conversationId, messageId) =>
+      set((state) => ({
+        conversations: state.conversations.map((conversation) => {
+          if (conversation.id !== conversationId) return conversation;
+          return {
+            ...conversation,
+            messages: conversation.messages.map((message) =>
+              message.id === messageId
+                ? { ...message, isPinned: !message.isPinned }
+                : message
+            ),
+          };
+        }),
+      })),
+    editMessage: (conversationId, messageId, content) =>
+      set((state) => ({
+        conversations: state.conversations.map((conversation) => {
+          if (conversation.id !== conversationId) return conversation;
+          const updatedAt = new Date().toISOString();
+          return {
+            ...conversation,
+            messages: conversation.messages.map((message) =>
+              message.id === messageId
+                ? { ...message, content, updatedAt, editedAt: updatedAt }
+                : message
+            ),
+          };
+        }),
+      })),
+    toggleReaction: (conversationId, messageId, emoji, reactedBy) =>
+      set((state) => ({
+        conversations: state.conversations.map((conversation) => {
+          if (conversation.id !== conversationId) return conversation;
+          return {
+            ...conversation,
+            messages: conversation.messages.map((message) => {
+              if (message.id !== messageId) return message;
+              const reactions = message.reactions ?? [];
+              const existing = reactions.find(
+                (reaction) => reaction.emoji === emoji && reaction.reactedBy === reactedBy
+              );
+              const updatedReactions = existing
+                ? reactions.filter(
+                    (reaction) =>
+                      !(
+                        reaction.emoji === existing.emoji &&
+                        reaction.reactedBy === existing.reactedBy
+                      )
+                  )
+                : [
+                    ...reactions,
+                    {
+                      emoji,
+                      reactedBy,
+                      reactedAt: new Date().toISOString(),
+                    },
+                  ];
+              return { ...message, reactions: updatedReactions };
+            }),
           };
         }),
       })),

@@ -189,6 +189,44 @@ export const mockConversations: Conversation[] = [
             name: "invoice-1042.pdf",
             mimeType: "application/pdf",
             sizeInBytes: 48200,
+            downloadUrl: "/files/invoice-1042.pdf",
+          },
+          {
+            id: "attach_floor_plan",
+            type: "image",
+            name: "floor-plan.png",
+            previewUrl:
+              "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=800&auto=format&fit=crop",
+            downloadUrl:
+              "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=1200&auto=format&fit=crop",
+          },
+          {
+            id: "attach_unit_video",
+            type: "video",
+            name: "unit-tour.mp4",
+            previewUrl: "https://www.w3schools.com/html/mov_bbb.mp4",
+            durationSeconds: 30,
+          },
+          {
+            id: "attach_location_pin",
+            type: "location",
+            name: "Warehouse",
+            location: {
+              title: "Warehouse",
+              subtitle: "Strada Aviatorilor 10",
+              mapImageUrl:
+                "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=600&auto=format&fit=crop",
+            },
+          },
+          {
+            id: "attach_tracking_link",
+            type: "link",
+            name: "Tracking Portal",
+            link: {
+              url: "https://tracking.robocall.ai/order/1042",
+              title: "Order #1042 tracking",
+              description: "Follow every milestone for the updated shipment.",
+            },
           },
         ],
       }),
@@ -236,6 +274,29 @@ export const mockConversations: Conversation[] = [
         content: "Perfect. Could you also share the rollout checklist?",
         minutesAgo: 25,
         isInbound: true,
+        attachments: [
+          {
+            id: "attach_rollout_poll",
+            type: "poll",
+            name: "Rollout Tasks",
+            poll: {
+              question: "Which checklist item should we prioritize?",
+              options: [
+                { id: "option_training", label: "Training deck", votes: 5 },
+                { id: "option_sla", label: "Updated SLAs", votes: 3 },
+                { id: "option_templates", label: "Response templates", votes: 1 },
+              ],
+              allowsMultiple: false,
+            },
+          },
+          {
+            id: "attach_voice_brief",
+            type: "voice",
+            name: "voice-note.m4a",
+            previewUrl: "https://www.w3schools.com/html/horse.mp3",
+            durationSeconds: 12,
+          },
+        ],
       }),
     ],
   },
@@ -279,6 +340,18 @@ export const mockConversations: Conversation[] = [
         minutesAgo: 135,
         isInbound: false,
         status: "read",
+        attachments: [
+          {
+            id: "attach_campaign_event",
+            type: "event",
+            name: "Campaign kickoff",
+            event: {
+              title: "Campaign kickoff",
+              date: now.subtract(2, "hour").toISOString(),
+              location: "Robocall HQ · Stage C",
+            },
+          },
+        ],
       }),
       makeMessage({
         conversationId: "conv_instagram_03",
@@ -286,6 +359,31 @@ export const mockConversations: Conversation[] = [
         content: "Thanks, Alex! Excited to see the update.",
         minutesAgo: 120,
         isInbound: true,
+        attachments: [
+          {
+            id: "attach_brand_assets",
+            type: "document",
+            name: "brand-assets.zip",
+            mimeType: "application/zip",
+            sizeInBytes: 18200000,
+          },
+          {
+            id: "attach_sticker_fun",
+            type: "sticker",
+            name: "Celebration sticker",
+            stickerUrl:
+              "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=600&auto=format&fit=crop",
+          },
+          {
+            id: "attach_contact_ai",
+            type: "contact",
+            name: "Robocall AI",
+            contact: {
+              name: "Robocall AI Agent",
+              phone: "+1 (555) 123-9876",
+            },
+          },
+        ],
       }),
     ],
   },
