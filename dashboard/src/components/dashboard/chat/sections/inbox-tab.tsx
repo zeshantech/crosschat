@@ -5,9 +5,8 @@ import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import {
   Archive,
+  ArrowLeft,
   Camera,
-  CheckCheck,
-  Circle,
   CircleDashed,
   Download,
   FileText,
@@ -23,12 +22,12 @@ import {
   Reply,
   Search,
   Send,
+  ShieldAlert,
   Smile,
   Star,
+  Tag,
   Trash2,
   User2,
-  Volume2,
-  BellOff,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -40,6 +39,7 @@ import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
+  ContextMenuLabel,
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
@@ -51,17 +51,19 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
-import { PLATFORM_META, getPlatformMeta } from "@/lib/platforms";
+import { getPlatformMeta } from "@/lib/platforms";
 import { useChatStore } from "@/lib/state/use-chat-store";
 import type { Conversation, Message, MessageAttachment, MessagingPlatform } from "@/lib/types/chat";
 import { cn } from "@/lib/utils";
@@ -86,6 +88,7 @@ type StatusFilter = (typeof STATUS_FILTERS)[number]["id"];
 export function InboxView() {
   const {
     conversations,
+    connections,
     tags,
     selectedConversationId,
     searchTerm,
@@ -110,18 +113,36 @@ export function InboxView() {
   const [tagFilter, setTagFilter] = useState<string>("all");
   const [viewArchived, setViewArchived] = useState(false);
   const [selectedChats, setSelectedChats] = useState<Set<string>>(new Set());
+  const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
 
   const selectionActive = selectedChats.size > 0;
   const archivedCount = useMemo(
     () => conversations.filter((conversation) => conversation.isArchived).length,
     [conversations]
   );
-  const platformOptions = useMemo(
-    () => Object.values(PLATFORM_META).filter((meta) => meta.id !== "unknown"),
-    []
-  );
+  const availablePlatforms = useMemo(() => {
+    const connected = connections
+      .filter((connection) => connection.status === "connected")
+      .map((connection) => connection.platform);
+    const source = connected.length
+      ? connected
+      : conversations.map((conversation) => conversation.platform);
+    const unique = Array.from(new Set(source));
+    return unique
+      .map((platform) => getPlatformMeta(platform))
+      .filter((meta) => meta.id !== "unknown");
+  }, [connections, conversations]);
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
+  const effectivePlatformFilter = useMemo(() => {
+    if (
+      platformFilter !== "all" &&
+      !availablePlatforms.some((meta) => meta.id === platformFilter)
+    ) {
+      return "all";
+    }
+    return platformFilter;
+  }, [platformFilter, availablePlatforms]);
 
   const visibleConversations = useMemo(() => {
     return conversations
@@ -133,15 +154,17 @@ export function InboxView() {
           case "unread":
             return conversation.unreadCount > 0;
           case "favorites":
-            return Boolean(conversation.isFavorite);
+            return conversation.isFavorite === true;
           case "spam":
-            return Boolean(conversation.isSpam);
+            return conversation.isSpam === true;
           default:
             return true;
         }
       })
       .filter((conversation) =>
-        platformFilter === "all" ? true : conversation.platform === platformFilter
+        effectivePlatformFilter === "all"
+          ? true
+          : conversation.platform === effectivePlatformFilter
       )
       .filter((conversation) =>
         tagFilter === "all"
@@ -160,7 +183,7 @@ export function InboxView() {
     conversations,
     viewArchived,
     activeStatusFilter,
-    platformFilter,
+    effectivePlatformFilter,
     tagFilter,
     normalizedSearch,
   ]);
@@ -212,8 +235,14 @@ export function InboxView() {
     markConversationRead(conversationId);
   };
 
-  const handleToggleArchivedView = () => {
-    setViewArchived((prev) => !prev);
+  const openArchivedView = () => {
+    setViewArchived(true);
+    clearSelection();
+    selectConversation(null);
+  };
+
+  const closeArchivedView = () => {
+    setViewArchived(false);
     clearSelection();
     selectConversation(null);
   };
@@ -281,230 +310,213 @@ export function InboxView() {
   return (
     <div className="flex h-screen text-sm">
       <aside className="flex w-[360px] flex-col border-r border-border">
-        <div className="flex items-center justify-between px-4 py-3">
-          <Avatar className="h-9 w-9">
-            <AvatarFallback>RC</AvatarFallback>
-          </Avatar>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="rounded-full">
-              <CircleDashed className="h-5 w-5" />
-            </Button>
-            <Button variant="ghost" size="icon" className="rounded-full">
-              <MessageSquarePlus className="h-5 w-5" />
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full">
-                  <MoreVertical className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onSelect={() => setActiveTab("settings")}>Settings</DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => setActiveTab("notifications")}>
-                  Notifications
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => setActiveTab("tags")}>
-                  Labels
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => setActiveTab("members")}>
-                  Team
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => setActiveTab("connect")}>
-                  Linked services
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => setActiveTab("analytics")}>
-                  Analytics
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={() => toast.info("Logging out")}>Log out</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-        <div className="px-3 pb-2">
-          <div className="flex items-center gap-2 rounded-lg bg-muted px-3">
-            <Search className="h-4 w-4 text-muted-foreground" />
-            <Input
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Search or start new chat"
-              className="h-9 border-0 bg-transparent shadow-none focus-visible:ring-0"
-            />
-            <Button
+        <div className="px-4 py-3">
+          {viewArchived ? (
+            <button
               type="button"
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowFilterPanel((prev) => !prev)}
+              onClick={closeArchivedView}
+              className="flex w-full items-center gap-3 rounded-lg border border-border bg-muted/40 px-3 py-2 text-left"
             >
-              <Filter className="h-4 w-4" />
-            </Button>
-          </div>
-          {showFilterPanel && (
-            <div className="mt-3 space-y-2 rounded-lg border border-dashed border-border/60 bg-muted/40 p-3">
-              <div className="space-y-1">
-                <p className="text-[11px] uppercase text-muted-foreground">Platform</p>
-                <Select
-                  value={platformFilter}
-                  onValueChange={(value) => setPlatformFilter(value as MessagingPlatform | "all")}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="All platforms" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All platforms</SelectItem>
-                    {platformOptions.map((option) => (
-                      <SelectItem key={option.id} value={option.id}>
-                        {option.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <ArrowLeft className="h-4 w-4" />
+              <div>
+                <p className="text-sm font-semibold">Archived</p>
+                <p className="text-xs text-muted-foreground">{archivedCount} chats</p>
               </div>
-              <div className="space-y-1">
-                <p className="text-[11px] uppercase text-muted-foreground">Tag</p>
-                <Select value={tagFilter} onValueChange={setTagFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All tags" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All tags</SelectItem>
-                    {tags.map((tag) => (
-                      <SelectItem key={tag.id} value={tag.id}>
-                        {tag.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            </button>
+          ) : (
+            <div className="flex items-center justify-between">
+              <Avatar className="h-9 w-9">
+                <AvatarFallback>RC</AvatarFallback>
+              </Avatar>
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <CircleDashed className="h-5 w-5" />
+                </Button>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <MessageSquarePlus className="h-5 w-5" />
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="rounded-full">
+                      <MoreVertical className="h-5 w-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onSelect={() => setActiveTab("settings")}>Settings</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => setActiveTab("notifications")}>
+                      Notifications
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => setActiveTab("tags")}>
+                      Labels
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => setActiveTab("members")}>
+                      Team
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => setActiveTab("connect")}>
+                      Linked services
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => setActiveTab("analytics")}>
+                      Analytics
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onSelect={() => toast.info("Logging out")}>Log out</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           )}
         </div>
-        <div className="px-3 pb-2">
-          <div className="flex flex-wrap gap-2">
-            {STATUS_FILTERS.map((filter) => {
-              const isActive = activeStatusFilter === filter.id;
-              return (
-                <button
-                  key={filter.id}
+        {!viewArchived && (
+          <>
+            <div className="px-3 pb-2">
+              <div className="flex items-center gap-2 rounded-lg bg-muted px-3">
+                <Search className="h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder="Search or start new chat"
+                  className="h-9 border-0 bg-transparent shadow-none focus-visible:ring-0"
+                />
+                <Button
                   type="button"
-                  onClick={() => setActiveStatusFilter(filter.id)}
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowFilterPanel((prev) => !prev)}
+                  aria-pressed={showFilterPanel}
                 >
-                  <Badge
-                    variant={isActive ? "secondary" : "outline"}
-                    className={cn("cursor-pointer px-3 py-1 text-[11px]", isActive && "shadow-sm")}
-                  >
-                    {filter.label}
-                  </Badge>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-        {selectionActive && (
-          <div className="flex flex-col gap-2 px-3 pb-2">
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>{selectedChats.size} chats selected</span>
-              <button type="button" onClick={clearSelection} className="hover:text-foreground">
-                Clear
-              </button>
+                  <Filter className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleBulkAction("markRead")}
-                title="Mark as read"
-              >
-                <CheckCheck className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleBulkAction("markUnread")}
-                title="Mark as unread"
-              >
-                <Circle className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleBulkAction("pin")}
-                title="Pin chats"
-              >
-                <Pin className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleBulkAction("unpin")}
-                title="Unpin chats"
-              >
-                <Pin className="h-4 w-4 rotate-45" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleBulkAction("mute")}
-                title="Mute chats"
-              >
-                <BellOff className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleBulkAction("unmute")}
-                title="Unmute chats"
-              >
-                <Volume2 className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleBulkAction("archive")}
-                title="Archive chats"
-              >
-                <Archive className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleBulkAction("unarchive")}
-                title="Unarchive chats"
-              >
-                <Archive className="h-4 w-4 text-muted-foreground" />
-              </Button>
-              <Button
-                variant="destructive"
-                size="icon"
-                onClick={() => handleBulkAction("delete")}
-                title="Delete chats"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+            {showFilterPanel && (
+              <div className="space-y-2 px-3 pb-2">
+                <div className="flex items-center gap-3">
+                  <ScrollArea className="max-w-[240px] overflow-hidden">
+                    <div className="flex gap-2 overflow-x-auto py-1">
+                      <button
+                        type="button"
+                        onClick={() => setPlatformFilter("all")}
+                        className={cn(
+                          "flex h-8 w-8 items-center justify-center rounded-full border transition",
+                          effectivePlatformFilter === "all"
+                            ? "border-secondary bg-secondary text-secondary-foreground"
+                            : "border-border bg-background text-muted-foreground"
+                        )}
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                        <span className="sr-only">All channels</span>
+                      </button>
+                      {availablePlatforms.map((meta) => {
+                        const isActive = effectivePlatformFilter === meta.id;
+                        const Icon = meta.icon;
+                        return (
+                          <button
+                            key={meta.id}
+                            type="button"
+                            onClick={() => setPlatformFilter(meta.id)}
+                            className={cn(
+                              "flex h-8 w-8 items-center justify-center rounded-full border transition",
+                              isActive
+                                ? "border-secondary bg-secondary text-secondary-foreground"
+                                : "border-border bg-background text-muted-foreground"
+                            )}
+                            title={meta.name}
+                          >
+                            <Icon className="h-4 w-4" />
+                            <span className="sr-only">{meta.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
+                  <Popover open={tagPopoverOpen} onOpenChange={setTagPopoverOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant={tagFilter === "all" ? "outline" : "secondary"}
+                        size="icon"
+                      >
+                        <Tag className="h-4 w-4" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent align="end" className="w-56 p-0">
+                      <Command>
+                        <CommandInput placeholder="Search labels" />
+                        <CommandList>
+                          <CommandEmpty>No labels found.</CommandEmpty>
+                          <CommandGroup>
+                            <CommandItem
+                              value="all"
+                              onSelect={() => {
+                                setTagFilter("all");
+                                setTagPopoverOpen(false);
+                              }}
+                            >
+                              All labels
+                            </CommandItem>
+                            {tags.map((tag) => (
+                              <CommandItem
+                                key={tag.id}
+                                value={tag.label}
+                                onSelect={() => {
+                                  setTagFilter(tag.id);
+                                  setTagPopoverOpen(false);
+                                }}
+                              >
+                                {tag.label}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+            )}
+            <div className="px-3 pb-2">
+              <div className="flex flex-wrap gap-2">
+                {STATUS_FILTERS.map((filter) => {
+                  const isActive = activeStatusFilter === filter.id;
+                  return (
+                    <button
+                      key={filter.id}
+                      type="button"
+                      onClick={() => setActiveStatusFilter(filter.id)}
+                    >
+                      <Badge
+                        variant={isActive ? "secondary" : "outline"}
+                        className={cn("cursor-pointer px-3 py-1 text-[11px]", isActive && "shadow-sm")}
+                      >
+                        {filter.label}
+                      </Badge>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          </>
         )}
         <ScrollArea className="flex-1">
           <div className="space-y-1 px-2 pb-3">
-            <button
-              type="button"
-              onClick={handleToggleArchivedView}
-              className={cn(
-                "flex w-full items-center justify-between rounded-lg px-3 py-2 text-left transition",
-                viewArchived ? "bg-secondary text-secondary-foreground" : "hover:bg-muted"
-              )}
-            >
-              <div className="flex items-center gap-3">
-                <Archive className="h-4 w-4" />
-                <div>
-                  <p className="text-sm font-medium">Archived</p>
-                  <p className="text-xs text-muted-foreground">{archivedCount} chats</p>
+            {archivedCount > 0 && !viewArchived && (
+              <button
+                type="button"
+                onClick={openArchivedView}
+                className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left transition hover:bg-muted"
+              >
+                <div className="flex items-center gap-3">
+                  <Archive className="h-4 w-4" />
+                  <div>
+                    <p className="text-sm font-medium">Archived</p>
+                    <p className="text-xs text-muted-foreground">{archivedCount} chats</p>
+                  </div>
                 </div>
-              </div>
-              <Badge variant="secondary" className="text-[10px] uppercase">
-                {viewArchived ? "Viewing" : archivedCount}
-              </Badge>
-            </button>
+                <Badge variant="secondary" className="text-[10px] uppercase">
+                  View
+                </Badge>
+              </button>
+            )}
             {visibleConversations.map((conversation) => (
               <ConversationRow
                 key={conversation.id}
@@ -512,6 +524,7 @@ export function InboxView() {
                 isSelected={conversation.id === selectedConversationId}
                 isChecked={selectedChats.has(conversation.id)}
                 selectionActive={selectionActive}
+                selectedCount={selectedChats.size}
                 onSelect={() => handleSelectConversation(conversation.id)}
                 onToggleSelection={() => toggleChatSelection(conversation.id)}
                 onMarkRead={() => markConversationRead(conversation.id)}
@@ -524,6 +537,8 @@ export function InboxView() {
                 onFavorite={() => toggleFavoriteConversation(conversation.id)}
                 onSpam={() => toggleSpamConversation(conversation.id)}
                 onViewProfile={() => setProfileConversationId(conversation.id)}
+                onBulkAction={handleBulkAction}
+                onClearSelection={clearSelection}
               />
             ))}
             {visibleConversations.length === 0 && (
@@ -565,6 +580,7 @@ type ConversationRowProps = {
   isSelected: boolean;
   isChecked: boolean;
   selectionActive: boolean;
+  selectedCount: number;
   onSelect: () => void;
   onToggleSelection: () => void;
   onMarkRead: () => void;
@@ -577,6 +593,8 @@ type ConversationRowProps = {
   onFavorite: () => void;
   onSpam: () => void;
   onViewProfile: () => void;
+  onBulkAction: (action: BulkAction) => void;
+  onClearSelection: () => void;
 };
 
 function ConversationRow({
@@ -584,6 +602,7 @@ function ConversationRow({
   isSelected,
   isChecked,
   selectionActive,
+  selectedCount,
   onSelect,
   onToggleSelection,
   onMarkRead,
@@ -596,13 +615,15 @@ function ConversationRow({
   onFavorite,
   onSpam,
   onViewProfile,
+  onBulkAction,
+  onClearSelection,
 }: ConversationRowProps) {
   const meta = getPlatformMeta(conversation.platform);
   const lastMessage = conversation.messages.at(-1);
   const preview = lastMessage?.content ?? "No messages yet";
   const timestamp = lastMessage ? dayjs(lastMessage.createdAt).format("HH:mm") : "";
   const hasUnread = conversation.unreadCount > 0;
-  const showCheckbox = selectionActive || isChecked;
+  const showCheckbox = isChecked;
 
   return (
     <ContextMenu>
@@ -615,41 +636,40 @@ function ConversationRow({
             isSelected ? "bg-secondary text-secondary-foreground" : "hover:bg-muted"
           )}
         >
-          <div
-            className={cn(
-              "flex items-center transition-opacity",
-              showCheckbox
-                ? "opacity-100"
-                : "pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100"
-            )}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <Checkbox
-              checked={isChecked}
-              onCheckedChange={() => onToggleSelection()}
-              aria-label="Select chat"
-              className="mr-1 h-4 w-4"
-            />
+          <div className="relative">
+            <Avatar className="h-10 w-10">
+              <AvatarFallback>{conversation.title.slice(0, 2).toUpperCase()}</AvatarFallback>
+            </Avatar>
+            <div
+              className={cn(
+                "absolute inset-0 flex items-center justify-center rounded-full bg-background/90 transition",
+                showCheckbox
+                  ? "pointer-events-auto opacity-100 shadow"
+                  : "pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100"
+              )}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <Checkbox
+                checked={isChecked}
+                onCheckedChange={() => onToggleSelection()}
+                onClick={(event) => event.stopPropagation()}
+                aria-label="Select chat"
+                className="h-4 w-4"
+              />
+            </div>
           </div>
-          <Avatar className="h-10 w-10">
-            <AvatarFallback>{conversation.title.slice(0, 2).toUpperCase()}</AvatarFallback>
-          </Avatar>
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <span className="truncate font-medium">{conversation.title}</span>
-                <Badge variant="secondary" className="text-[10px] uppercase">
-                  {meta.name}
-                </Badge>
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                  <meta.icon className="h-3.5 w-3.5" />
+                </span>
                 {conversation.isPinned && <Pin className="h-3 w-3 text-muted-foreground" />}
                 {conversation.isFavorite && (
                   <Star className="h-3 w-3 text-yellow-500" fill="currentColor" />
                 )}
-                {conversation.isSpam && (
-                  <Badge variant="destructive" className="text-[9px] uppercase">
-                    Spam
-                  </Badge>
-                )}
+                {conversation.isSpam && <ShieldAlert className="h-3.5 w-3.5 text-destructive" />}
               </div>
               <span className="text-xs text-muted-foreground">{timestamp}</span>
             </div>
@@ -673,6 +693,9 @@ function ConversationRow({
       </ContextMenuTrigger>
       <ContextMenuContent>
         <ContextMenuItem onSelect={onViewProfile}>Contact info</ContextMenuItem>
+        <ContextMenuItem onSelect={() => onToggleSelection()}>
+          {isChecked ? "Unselect chat" : "Select chat"}
+        </ContextMenuItem>
         <ContextMenuItem onSelect={onFavorite}>
           {conversation.isFavorite ? "Remove from favourites" : "Add to favourites"}
         </ContextMenuItem>
@@ -705,6 +728,42 @@ function ConversationRow({
         <ContextMenuItem className="text-destructive" onSelect={onDelete}>
           Delete chat
         </ContextMenuItem>
+        {selectionActive && (
+          <>
+            <ContextMenuSeparator />
+            <ContextMenuLabel>
+              Selected ({selectedCount})
+            </ContextMenuLabel>
+            <ContextMenuItem onSelect={() => onBulkAction("markRead")}>
+              Mark selected read
+            </ContextMenuItem>
+            <ContextMenuItem onSelect={() => onBulkAction("markUnread")}>
+              Mark selected unread
+            </ContextMenuItem>
+            <ContextMenuItem onSelect={() => onBulkAction("pin")}>
+              Pin selected
+            </ContextMenuItem>
+            <ContextMenuItem onSelect={() => onBulkAction("unpin")}>
+              Unpin selected
+            </ContextMenuItem>
+            <ContextMenuItem onSelect={() => onBulkAction("mute")}>
+              Mute selected
+            </ContextMenuItem>
+            <ContextMenuItem onSelect={() => onBulkAction("unmute")}>
+              Unmute selected
+            </ContextMenuItem>
+            <ContextMenuItem onSelect={() => onBulkAction("archive")}>
+              Archive selected
+            </ContextMenuItem>
+            <ContextMenuItem onSelect={() => onBulkAction("unarchive")}>
+              Unarchive selected
+            </ContextMenuItem>
+            <ContextMenuItem className="text-destructive" onSelect={() => onBulkAction("delete")}>
+              Delete selected
+            </ContextMenuItem>
+            <ContextMenuItem onSelect={onClearSelection}>Clear selection</ContextMenuItem>
+          </>
+        )}
       </ContextMenuContent>
     </ContextMenu>
   );
@@ -740,6 +799,7 @@ function ConversationDetail({ conversationId, onOpenProfile }: ConversationDetai
   if (!conversation) return null;
 
   const meta = getPlatformMeta(conversation.platform);
+  const hasUnread = conversation.unreadCount > 0;
 
   const handleAddAttachment = (type: DraftAttachment["type"], name: string) => {
     if (type === "document") {
