@@ -9,7 +9,10 @@ import {
   ArrowLeft,
   BarChart2,
   CalendarDays,
+  Check,
+  ChevronRight,
   CircleDashed,
+  Clock,
   Copy,
   Download,
   Edit2,
@@ -17,6 +20,7 @@ import {
   Filter,
   Flag,
   Forward,
+  Gift,
   Image as ImageIcon,
   Info,
   Link2,
@@ -27,12 +31,14 @@ import {
   MoreVertical,
   Paperclip,
   Pin,
+  Plus,
   Reply,
   Search,
   Scissors,
   Send,
   ShieldAlert,
   Smile,
+  Sparkles,
   Sticker,
   Star,
   Tag,
@@ -62,6 +68,13 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -69,8 +82,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Command,
   CommandEmpty,
@@ -117,6 +134,53 @@ const STATUS_FILTERS = [
 type StatusFilter = (typeof STATUS_FILTERS)[number]["id"];
 
 const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🙏"] as const;
+
+type BulkAction =
+  | "markRead"
+  | "markUnread"
+  | "archive"
+  | "unarchive"
+  | "pin"
+  | "unpin"
+  | "mute"
+  | "unmute"
+  | "delete";
+
+// Emoji data structure
+const EMOJI_CATEGORIES = [
+  {
+    id: "recent",
+    label: "Recent",
+    icon: Clock,
+    emojis: ["😊", "👍", "❤️", "😂", "😮", "😢", "🙏", "🎉"],
+  },
+  {
+    id: "smileys",
+    label: "Smileys & People",
+    icon: Smile,
+    emojis: ["😀", "😃", "😄", "😁", "😆", "😅", "🤣", "😂", "🙂", "🙃", "😉", "😊", "😇", "🥰", "😍", "🤩", "😘", "😗", "😚", "😙", "😋", "😛", "😜", "🤪", "😝"],
+  },
+  {
+    id: "gestures",
+    label: "Gestures",
+    icon: Gift,
+    emojis: ["👍", "👎", "👊", "✊", "🤛", "🤜", "🤞", "✌️", "🤟", "🤘", "👌", "🤏", "👈", "👉", "👆", "👇", "☝️", "✋", "🤚", "🖐", "🖖", "👋", "🤙", "💪"],
+  },
+  {
+    id: "hearts",
+    label: "Hearts",
+    icon: Sparkles,
+    emojis: ["❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "🤎", "💔", "❣️", "💕", "💞", "💓", "💗", "💖", "💘", "💝"],
+  },
+] as const;
+
+const STICKER_PACKS = [
+  { id: "pack1", name: "Funny", preview: "😂", stickers: Array(12).fill("https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=200") },
+  { id: "pack2", name: "Love", preview: "❤️", stickers: Array(12).fill("https://images.unsplash.com/photo-1518806118471-f28b20a1d79d?w=200") },
+  { id: "pack3", name: "Reactions", preview: "😮", stickers: Array(12).fill("https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200") },
+];
+
+const GIF_CATEGORIES = ["Trending", "Happy", "Sad", "Love", "Funny", "Dance", "Celebrate"];
 
 const ATTACHMENT_PICKER_ITEMS: Array<{
   id: DraftAttachmentKind;
@@ -206,13 +270,6 @@ const ATTACHMENT_PICKER_ITEMS: Array<{
     description: "Share a URL",
     icon: Link2,
     accent: "from-cyan-500 to-blue-500",
-  },
-  {
-    id: "sticker",
-    label: "Sticker",
-    description: "Add some fun",
-    icon: Sticker,
-    accent: "from-yellow-500 to-red-500",
   },
 ] as const;
 
@@ -382,17 +439,6 @@ export function InboxView() {
     () => conversations.filter((conversation) => selectedChats.has(conversation.id)),
     [conversations, selectedChats]
   );
-
-  type BulkAction =
-    | "markRead"
-    | "markUnread"
-    | "archive"
-    | "unarchive"
-    | "pin"
-    | "unpin"
-    | "mute"
-    | "unmute"
-    | "delete";
 
   const handleBulkAction = (action: BulkAction) => {
     selectedConversations.forEach((conversation) => {
@@ -932,6 +978,12 @@ function ConversationDetail({ conversationId, onOpenProfile }: ConversationDetai
   const [pendingFileKind, setPendingFileKind] = useState<DraftAttachmentKind | null>(null);
   const [replyingMessage, setReplyingMessage] = useState<Message | null>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [showMediaComposer, setShowMediaComposer] = useState(false);
+  const [showNumberModal, setShowNumberModal] = useState(false);
+  const [selectedNumber, setSelectedNumber] = useState("+1 (555) 123-4567");
+  const [showPollDialog, setShowPollDialog] = useState(false);
+  const [showEventDialog, setShowEventDialog] = useState(false);
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   if (!conversation) return null;
@@ -944,11 +996,29 @@ function ConversationDetail({ conversationId, onOpenProfile }: ConversationDetai
 
   const handleAttachmentPick = (kind: DraftAttachmentKind) => {
     const option = ATTACHMENT_PICKER_ITEMS.find((item) => item.id === kind);
+
+    // Special handling for poll and event
+    if (kind === "poll") {
+      setShowPollDialog(true);
+      return;
+    }
+
+    if (kind === "event") {
+      setShowEventDialog(true);
+      return;
+    }
+
     if (option?.requiresFile) {
       setPendingFileKind(kind);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
         fileInputRef.current.accept = option.accept ?? "*/*";
+        // Allow multiple files for images and videos
+        if (kind === "image" || kind === "video") {
+          fileInputRef.current.multiple = true;
+        } else {
+          fileInputRef.current.multiple = false;
+        }
         fileInputRef.current.click();
       }
       return;
@@ -977,7 +1047,15 @@ function ConversationDetail({ conversationId, onOpenProfile }: ConversationDetai
         sizeLabel: formatBytes(file.size),
       } satisfies DraftAttachment;
     });
-    setComposerAttachments((prev) => [...prev, ...drafts]);
+
+    // If it's image or video, show the full-screen composer
+    if (kind === "image" || kind === "video") {
+      setComposerAttachments(drafts);
+      setShowMediaComposer(true);
+    } else {
+      setComposerAttachments((prev) => [...prev, ...drafts]);
+    }
+
     setPendingFileKind(null);
   };
 
@@ -1076,6 +1154,22 @@ function ConversationDetail({ conversationId, onOpenProfile }: ConversationDetai
     }
   };
 
+  const handleEmojiSelect = (emoji: string) => {
+    setDraft((prev) => prev + emoji);
+    setEmojiPickerOpen(false);
+  };
+
+  const handleStickerSelect = (stickerUrl: string) => {
+    const stickerDraft: DraftAttachment = {
+      id: `draft_sticker_${nanoid(6)}`,
+      kind: "sticker",
+      name: "Sticker",
+      previewUrl: stickerUrl,
+    };
+    setComposerAttachments([stickerDraft]);
+    setEmojiPickerOpen(false);
+  };
+
   const hasUnread = conversation.unreadCount > 0;
 
   return (
@@ -1104,7 +1198,17 @@ function ConversationDetail({ conversationId, onOpenProfile }: ConversationDetai
                 </Badge>
               )}
             </div>
-            <p className="text-xs text-muted-foreground">{dayjs(conversation.lastMessageAt).fromNow()}</p>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowNumberModal(true);
+              }}
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition"
+            >
+              {selectedNumber}
+              <ChevronRight className="h-3 w-3" />
+            </button>
           </div>
         </button>
         <DropdownMenu>
@@ -1207,8 +1311,8 @@ function ConversationDetail({ conversationId, onOpenProfile }: ConversationDetai
         </div>
       )}
 
-      {composerAttachments.length > 0 && (
-        <div className="space-y-3 border-t border-border bg-muted/40 px-4 py-3">
+      {composerAttachments.length > 0 && !showMediaComposer && (
+        <div className="space-y-2 border-t border-border bg-muted/40 px-4 py-3 max-h-[200px] overflow-y-auto">
           {composerAttachments.map((attachment) => (
             <AttachmentComposerPreview
               key={attachment.id}
@@ -1252,21 +1356,35 @@ function ConversationDetail({ conversationId, onOpenProfile }: ConversationDetai
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
-        <Button variant="ghost" size="icon" className="rounded-full" type="button">
-          <Smile className="h-5 w-5" />
-        </Button>
+
+        <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" size="icon" className="rounded-full" type="button">
+              <Smile className="h-5 w-5" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-[380px] p-0">
+            <EmojiPicker onEmojiSelect={handleEmojiSelect} onStickerSelect={handleStickerSelect} />
+          </PopoverContent>
+        </Popover>
+
         <textarea
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
-          className="flex-1 resize-none rounded-lg border border-border bg-muted px-3 py-2 text-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          rows={composerAttachments.length > 0 || replyingMessage ? 2 : 1}
+          className="flex-1 resize-none rounded-lg border border-border bg-muted px-3 py-2 text-sm outline-none focus-visible:ring-1 focus-visible:ring-ring max-h-[100px]"
+          rows={1}
           placeholder={editingMessage ? "Edit message" : "Type a message"}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              handleSubmit(e as unknown as React.FormEvent<HTMLFormElement>);
+            }
+          }}
         />
         <input
           ref={fileInputRef}
           type="file"
           className="hidden"
-          multiple
           onChange={(event) => handleFileSelection(event.target.files)}
         />
         <Button
@@ -1277,9 +1395,99 @@ function ConversationDetail({ conversationId, onOpenProfile }: ConversationDetai
           <Send className="h-4 w-4" />
         </Button>
       </form>
+
+      {/* Full-screen Media Composer */}
+      <MediaComposerDialog
+        open={showMediaComposer}
+        onClose={() => {
+          setShowMediaComposer(false);
+          setComposerAttachments([]);
+        }}
+        attachments={composerAttachments}
+        onRemove={handleRemoveAttachment}
+        onSend={(caption) => {
+          const preparedAttachments = composerAttachments.map(convertDraftToMessageAttachment);
+          sendMessage(conversation.id, {
+            content: caption,
+            attachments: preparedAttachments,
+          });
+          setShowMediaComposer(false);
+          setComposerAttachments([]);
+        }}
+      />
+
+      {/* Number Selection Modal */}
+      <Dialog open={showNumberModal} onOpenChange={setShowNumberModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Select Number</DialogTitle>
+            <DialogDescription>Choose which number to use for this conversation</DialogDescription>
+          </DialogHeader>
+          <RadioGroup value={selectedNumber} onValueChange={setSelectedNumber} className="space-y-3">
+            <div className="flex items-center space-x-3">
+              <RadioGroupItem value="+1 (555) 123-4567" id="num1" />
+              <Label htmlFor="num1" className="flex-1 cursor-pointer">
+                <div className="text-sm font-medium">+1 (555) 123-4567</div>
+                <div className="text-xs text-muted-foreground">Primary Business Line</div>
+              </Label>
+            </div>
+            <div className="flex items-center space-x-3">
+              <RadioGroupItem value="+1 (555) 987-6543" id="num2" />
+              <Label htmlFor="num2" className="flex-1 cursor-pointer">
+                <div className="text-sm font-medium">+1 (555) 987-6543</div>
+                <div className="text-xs text-muted-foreground">Support Line</div>
+              </Label>
+            </div>
+            <div className="flex items-center space-x-3">
+              <RadioGroupItem value="+1 (555) 111-2222" id="num3" />
+              <Label htmlFor="num3" className="flex-1 cursor-pointer">
+                <div className="text-sm font-medium">+1 (555) 111-2222</div>
+                <div className="text-xs text-muted-foreground">Sales Line</div>
+              </Label>
+            </div>
+          </RadioGroup>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setShowNumberModal(false)}>Cancel</Button>
+            <Button onClick={() => setShowNumberModal(false)}>Confirm</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Poll Dialog */}
+      <PollDialog
+        open={showPollDialog}
+        onClose={() => setShowPollDialog(false)}
+        onConfirm={(pollData) => {
+          const pollDraft: DraftAttachment = {
+            id: `draft_poll_${nanoid(6)}`,
+            kind: "poll",
+            name: pollData.question,
+            metadata: { poll: pollData },
+          };
+          setComposerAttachments((prev) => [...prev, pollDraft]);
+          setShowPollDialog(false);
+        }}
+      />
+
+      {/* Event Dialog */}
+      <EventDialog
+        open={showEventDialog}
+        onClose={() => setShowEventDialog(false)}
+        onConfirm={(eventData) => {
+          const eventDraft: DraftAttachment = {
+            id: `draft_event_${nanoid(6)}`,
+            kind: "event",
+            name: eventData.title,
+            metadata: { event: eventData },
+          };
+          setComposerAttachments((prev) => [...prev, eventDraft]);
+          setShowEventDialog(false);
+        }}
+      />
     </div>
   );
 }
+
 type MessageBubbleProps = {
   message: Message;
   isOwn: boolean;
@@ -1421,6 +1629,482 @@ function MessageBubble({
   );
 }
 
+type EmojiPickerProps = {
+  onEmojiSelect: (emoji: string) => void;
+  onStickerSelect: (stickerUrl: string) => void;
+};
+
+function EmojiPicker({ onEmojiSelect, onStickerSelect }: EmojiPickerProps) {
+  const [searchTerm, setSearchTerm] = useState("");
+
+  return (
+    <Tabs defaultValue="emojis" className="w-full">
+      <TabsList className="w-full grid grid-cols-3">
+        <TabsTrigger value="emojis">Emojis</TabsTrigger>
+        <TabsTrigger value="stickers">Stickers</TabsTrigger>
+        <TabsTrigger value="gifs">GIFs</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="emojis" className="p-2">
+        <Input
+          placeholder="Search emojis..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="mb-2 h-8 text-xs"
+        />
+        <ScrollArea className="h-[280px]">
+          <div className="space-y-4">
+            {EMOJI_CATEGORIES.map((category) => (
+              <div key={category.id}>
+                <div className="flex items-center gap-2 mb-2 sticky top-0 bg-background/95 backdrop-blur-sm py-1">
+                  <category.icon className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-xs font-medium text-muted-foreground">{category.label}</span>
+                </div>
+                <div className="grid grid-cols-8 gap-1">
+                  {category.emojis.map((emoji) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      onClick={() => onEmojiSelect(emoji)}
+                      className="p-2 hover:bg-muted rounded-md transition text-xl"
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+      </TabsContent>
+
+      <TabsContent value="stickers" className="p-2">
+        <ScrollArea className="h-[320px]">
+          <div className="space-y-4">
+            {STICKER_PACKS.map((pack) => (
+              <div key={pack.id}>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xl">{pack.preview}</span>
+                  <span className="text-xs font-medium">{pack.name}</span>
+                </div>
+                <div className="grid grid-cols-4 gap-2">
+                  {pack.stickers.map((sticker, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => onStickerSelect(sticker)}
+                      className="aspect-square overflow-hidden rounded-lg border border-border hover:border-primary transition"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={sticker} alt="Sticker" className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+      </TabsContent>
+
+      <TabsContent value="gifs" className="p-2">
+        <Input
+          placeholder="Search GIFs..."
+          className="mb-2 h-8 text-xs"
+        />
+        <div className="flex flex-wrap gap-2 mb-2">
+          {GIF_CATEGORIES.map((category) => (
+            <Badge key={category} variant="outline" className="cursor-pointer hover:bg-secondary text-[10px]">
+              {category}
+            </Badge>
+          ))}
+        </div>
+        <ScrollArea className="h-[240px]">
+          <div className="grid grid-cols-2 gap-2">
+            {Array(8).fill(null).map((_, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => toast.info("GIF selection coming soon")}
+                className="aspect-video overflow-hidden rounded-lg border border-border hover:border-primary transition bg-muted"
+              >
+                <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
+                  GIF {idx + 1}
+                </div>
+              </button>
+            ))}
+          </div>
+        </ScrollArea>
+      </TabsContent>
+    </Tabs>
+  );
+}
+
+type MediaComposerDialogProps = {
+  open: boolean;
+  onClose: () => void;
+  attachments: DraftAttachment[];
+  onRemove: (id: string) => void;
+  onSend: (caption: string) => void;
+};
+
+function MediaComposerDialog({ open, onClose, attachments, onRemove, onSend }: MediaComposerDialogProps) {
+  const [caption, setCaption] = useState("");
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  const handleSend = () => {
+    onSend(caption);
+    setCaption("");
+    setActiveIndex(0);
+  };
+
+  if (!open) return null;
+
+  const activeAttachment = attachments[activeIndex];
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl h-[90vh] p-0 gap-0">
+        <div className="flex flex-col h-full">
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 border-b">
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="icon" onClick={onClose}>
+                <X className="h-5 w-5" />
+              </Button>
+              <span className="font-medium">
+                {attachments.length} {attachments.length === 1 ? 'file' : 'files'}
+              </span>
+            </div>
+            <Button onClick={handleSend}>
+              <Send className="h-4 w-4 mr-2" />
+              Send
+            </Button>
+          </div>
+
+          {/* Preview Area */}
+          <div className="flex-1 bg-black/95 flex items-center justify-center p-4 relative">
+            {activeAttachment && (
+              <>
+                {activeAttachment.kind === "image" && activeAttachment.previewUrl && (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={activeAttachment.previewUrl}
+                    alt={activeAttachment.name}
+                    className="max-w-full max-h-full object-contain"
+                  />
+                )}
+                {activeAttachment.kind === "video" && activeAttachment.previewUrl && (
+                  <video
+                    src={activeAttachment.previewUrl}
+                    controls
+                    className="max-w-full max-h-full"
+                  />
+                )}
+              </>
+            )}
+
+            {/* Navigation arrows */}
+            {attachments.length > 1 && (
+              <>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full"
+                  onClick={() => setActiveIndex((prev) => (prev > 0 ? prev - 1 : attachments.length - 1))}
+                >
+                  <ChevronRight className="h-5 w-5 rotate-180" />
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full"
+                  onClick={() => setActiveIndex((prev) => (prev < attachments.length - 1 ? prev + 1 : 0))}
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </Button>
+              </>
+            )}
+
+            {/* Edit tools */}
+            <div className="absolute top-4 right-4 flex gap-2">
+              <Button variant="secondary" size="icon" className="rounded-full">
+                <Scissors className="h-4 w-4" />
+              </Button>
+              <Button variant="secondary" size="icon" className="rounded-full">
+                <RotateCcw className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Thumbnail strip */}
+          {attachments.length > 1 && (
+            <div className="border-t bg-background p-3">
+              <ScrollArea className="w-full">
+                <div className="flex gap-2">
+                  {attachments.map((attachment, idx) => (
+                    <div key={attachment.id} className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setActiveIndex(idx)}
+                        className={cn(
+                          "relative h-16 w-16 rounded-lg overflow-hidden border-2 transition",
+                          activeIndex === idx ? "border-primary" : "border-transparent"
+                        )}
+                      >
+                        {attachment.kind === "image" && attachment.previewUrl && (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img src={attachment.previewUrl} alt="" className="w-full h-full object-cover" />
+                        )}
+                        {attachment.kind === "video" && (
+                          <div className="w-full h-full bg-black/20 flex items-center justify-center">
+                            <VideoIcon className="h-6 w-6 text-white" />
+                          </div>
+                        )}
+                      </button>
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute -top-2 -right-2 h-5 w-5 rounded-full"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRemove(attachment.id);
+                          if (activeIndex >= attachments.length - 1) {
+                            setActiveIndex(Math.max(0, attachments.length - 2));
+                          }
+                        }}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+          )}
+
+          {/* Caption input */}
+          <div className="border-t p-4">
+            <Textarea
+              placeholder="Add a caption..."
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              className="resize-none"
+              rows={2}
+            />
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+type PollDialogProps = {
+  open: boolean;
+  onClose: () => void;
+  onConfirm: (data: { question: string; options: Array<{ id: string; label: string }>; allowsMultiple: boolean }) => void;
+};
+
+function PollDialog({ open, onClose, onConfirm }: PollDialogProps) {
+  const [question, setQuestion] = useState("");
+  const [options, setOptions] = useState(["", ""]);
+  const [allowsMultiple, setAllowsMultiple] = useState(false);
+
+  const handleAddOption = () => {
+    if (options.length < 10) {
+      setOptions([...options, ""]);
+    }
+  };
+
+  const handleRemoveOption = (index: number) => {
+    if (options.length > 2) {
+      setOptions(options.filter((_, idx) => idx !== index));
+    }
+  };
+
+  const handleOptionChange = (index: number, value: string) => {
+    const newOptions = [...options];
+    newOptions[index] = value;
+    setOptions(newOptions);
+  };
+
+  const handleConfirm = () => {
+    if (!question.trim() || options.filter(o => o.trim()).length < 2) {
+      toast.error("Please provide a question and at least 2 options");
+      return;
+    }
+
+    onConfirm({
+      question: question.trim(),
+      options: options
+        .filter(o => o.trim())
+        .map((label, idx) => ({ id: `opt_${idx}`, label: label.trim() })),
+      allowsMultiple,
+    });
+
+    // Reset
+    setQuestion("");
+    setOptions(["", ""]);
+    setAllowsMultiple(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Create Poll</DialogTitle>
+          <DialogDescription>Ask a question and provide options</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="question">Question</Label>
+            <Input
+              id="question"
+              placeholder="What's your question?"
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              className="mt-1.5"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Options</Label>
+            {options.map((option, idx) => (
+              <div key={idx} className="flex gap-2">
+                <Input
+                  placeholder={`Option ${idx + 1}`}
+                  value={option}
+                  onChange={(e) => handleOptionChange(idx, e.target.value)}
+                />
+                {options.length > 2 && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleRemoveOption(idx)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            ))}
+            {options.length < 10 && (
+              <Button variant="outline" size="sm" onClick={handleAddOption} className="w-full">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Option
+              </Button>
+            )}
+          </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="multiple"
+              checked={allowsMultiple}
+              onCheckedChange={(checked) => setAllowsMultiple(checked as boolean)}
+            />
+            <Label htmlFor="multiple" className="text-sm cursor-pointer">
+              Allow multiple answers
+            </Label>
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 mt-4">
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={handleConfirm}>Create Poll</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+type EventDialogProps = {
+  open: boolean;
+  onClose: () => void;
+  onConfirm: (data: { title: string; date: string; location?: string }) => void;
+};
+
+function EventDialog({ open, onClose, onConfirm }: EventDialogProps) {
+  const [title, setTitle] = useState("");
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
+  const [location, setLocation] = useState("");
+
+  const handleConfirm = () => {
+    if (!title.trim() || !date) {
+      toast.error("Please provide event title and date");
+      return;
+    }
+
+    const dateTime = time ? `${date}T${time}` : `${date}T12:00`;
+
+    onConfirm({
+      title: title.trim(),
+      date: new Date(dateTime).toISOString(),
+      location: location.trim() || undefined,
+    });
+
+    // Reset
+    setTitle("");
+    setDate("");
+    setTime("");
+    setLocation("");
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Create Event</DialogTitle>
+          <DialogDescription>Schedule a meeting or event</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="title">Event Title</Label>
+            <Input
+              id="title"
+              placeholder="Team Meeting"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="mt-1.5"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="date">Date</Label>
+              <Input
+                id="date"
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="mt-1.5"
+              />
+            </div>
+            <div>
+              <Label htmlFor="time">Time</Label>
+              <Input
+                id="time"
+                type="time"
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+                className="mt-1.5"
+              />
+            </div>
+          </div>
+          <div>
+            <Label htmlFor="location">Location (optional)</Label>
+            <Input
+              id="location"
+              placeholder="Conference Room A or Zoom link"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              className="mt-1.5"
+            />
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 mt-4">
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={handleConfirm}>Create Event</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 type AttachmentComposerPreviewProps = {
   attachment: DraftAttachment;
   onRemove: () => void;
@@ -1435,158 +2119,138 @@ function AttachmentComposerPreview({ attachment, onRemove }: AttachmentComposerP
       case "image":
       case "sticker":
         return (
-          <>
-            <div className="mt-2 overflow-hidden rounded-xl border border-dashed border-border/60 bg-black/5">
-              {attachment.previewUrl ? (
-                <>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={attachment.previewUrl} alt={attachment.name} className="w-full object-cover" />
-                </>
-              ) : (
-                <div className="flex h-40 items-center justify-center text-xs text-muted-foreground">
-                  Image preview
-                </div>
-              )}
+          <div className="flex items-center gap-3 rounded-xl border border-border bg-background/80 p-2">
+            {attachment.previewUrl && (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={attachment.previewUrl} alt={attachment.name} className="h-12 w-12 object-cover rounded-lg" />
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{attachment.name}</p>
+              {attachment.sizeLabel && <p className="text-xs text-muted-foreground">{attachment.sizeLabel}</p>}
             </div>
-            <div className="mt-2 flex flex-wrap gap-2 text-xs">
-              <Button variant="ghost" size="sm" className="gap-1">
-                <Scissors className="h-3 w-3" /> Crop
-              </Button>
-              <Button variant="ghost" size="sm" className="gap-1">
-                <RotateCcw className="h-3 w-3" /> Rotate
-              </Button>
-            </div>
-            <Input className="mt-2 text-xs" placeholder="Add caption" />
-          </>
+          </div>
         );
       case "video":
         return (
-          <>
-            <div className="mt-2 overflow-hidden rounded-xl border border-dashed border-border/60 bg-black/5">
-              {attachment.previewUrl ? (
-                <video controls src={attachment.previewUrl} className="w-full" />
-              ) : (
-                <div className="flex h-32 items-center justify-center text-xs text-muted-foreground">
-                  Video preview
-                </div>
-              )}
+          <div className="flex items-center gap-3 rounded-xl border border-border bg-background/80 p-2">
+            <div className="h-12 w-12 bg-black/10 rounded-lg flex items-center justify-center">
+              <VideoIcon className="h-6 w-6 text-muted-foreground" />
             </div>
-            <div className="mt-2 flex flex-wrap gap-2 text-xs">
-              <Button variant="ghost" size="sm" className="gap-1">
-                <Scissors className="h-3 w-3" /> Trim
-              </Button>
-              <Button variant="ghost" size="sm" className="gap-1">
-                <ImageIcon className="h-3 w-3" /> Cover
-              </Button>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{attachment.name}</p>
+              {attachment.sizeLabel && <p className="text-xs text-muted-foreground">{attachment.sizeLabel}</p>}
             </div>
-            <Input className="mt-2 text-xs" placeholder="Add caption" />
-          </>
+          </div>
         );
       case "audio":
       case "voice":
         return (
-          <div className="mt-2 rounded-xl border border-dashed border-border/60 bg-background/80 p-3">
-            <audio controls src={attachment.previewUrl} className="w-full" />
-            <p className="mt-2 text-xs text-muted-foreground">{attachment.name}</p>
+          <div className="rounded-xl border border-border bg-background/80 p-2">
+            <div className="flex items-center gap-3">
+              <Music2 className="h-5 w-5 text-muted-foreground" />
+              <p className="text-sm font-medium flex-1 truncate">{attachment.name}</p>
+            </div>
           </div>
         );
       case "document":
         return (
-          <div className="mt-3 flex items-center justify-between rounded-xl border border-dashed border-border/60 bg-background/80 p-3">
-            <div className="flex items-center gap-3">
-              <FileText className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-sm font-medium">{attachment.name}</p>
-                <p className="text-xs text-muted-foreground">{attachment.sizeLabel ?? "Document"}</p>
-              </div>
+          <div className="flex items-center gap-3 rounded-xl border border-border bg-background/80 p-2">
+            <FileText className="h-5 w-5 text-muted-foreground" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{attachment.name}</p>
+              {attachment.sizeLabel && <p className="text-xs text-muted-foreground">{attachment.sizeLabel}</p>}
             </div>
-            <Badge variant="outline" className="text-[10px] uppercase">
-              Doc
-            </Badge>
           </div>
         );
       case "contact":
         return (
-          <div className="mt-2 rounded-xl border border-dashed border-border/60 bg-background/80 p-3 text-xs">
-            <p className="text-sm font-semibold">
-              {(attachment.metadata?.contact as { name?: string })?.name ?? attachment.name}
-            </p>
-            <p className="text-muted-foreground">
-              {(attachment.metadata?.contact as { phone?: string })?.phone ?? "+1 (555) 010-2020"}
-            </p>
-            <div className="mt-2 flex gap-2">
-              <Button size="sm" variant="secondary" className="text-xs">
-                Message
-              </Button>
-              <Button size="sm" variant="outline" className="text-xs">
-                Add contact
-              </Button>
+          <div className="rounded-xl border border-border bg-background/80 p-2">
+            <div className="flex items-center gap-3">
+              <User2 className="h-5 w-5 text-muted-foreground" />
+              <div className="flex-1">
+                <p className="text-sm font-medium">
+                  {(attachment.metadata?.contact as { name?: string })?.name ?? attachment.name}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {(attachment.metadata?.contact as { phone?: string })?.phone ?? "+1 (555) 010-2020"}
+                </p>
+              </div>
             </div>
           </div>
         );
       case "location":
         return (
-          <div className="mt-2 overflow-hidden rounded-xl border border-dashed border-border/60">
-            <div className="h-32 bg-gradient-to-br from-emerald-500/40 to-emerald-700/40">
-              <div className="flex h-full items-center justify-center text-xs text-white/70">
-                Map preview
+          <div className="rounded-xl border border-border bg-background/80 p-2">
+            <div className="flex items-center gap-3">
+              <MapPin className="h-5 w-5 text-muted-foreground" />
+              <div className="flex-1">
+                <p className="text-sm font-medium">
+                  {(attachment.metadata?.location as { title?: string })?.title ?? attachment.name}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {(attachment.metadata?.location as { subtitle?: string })?.subtitle ?? "Shared location"}
+                </p>
               </div>
-            </div>
-            <div className="px-3 py-2 text-xs">
-              <p className="font-semibold">
-                {(attachment.metadata?.location as { title?: string })?.title ?? attachment.name}
-              </p>
-              <p className="text-muted-foreground">
-                {(attachment.metadata?.location as { subtitle?: string })?.subtitle ?? "Shared location"}
-              </p>
             </div>
           </div>
         );
       case "poll":
         return (
-          <div className="mt-2 space-y-2 rounded-xl border border-dashed border-border/60 bg-background/80 p-3 text-xs">
-            <p className="font-semibold">
-              {(attachment.metadata?.poll as { question?: string })?.question ?? attachment.name}
-            </p>
-            {((attachment.metadata?.poll as { options?: Array<{ id: string; label: string }> })
-              ?.options ?? []
-            ).map((option) => (
-              <div key={option.id} className="rounded-lg border border-border/60 bg-background px-2 py-1.5">
-                {option.label}
-              </div>
-            ))}
+          <div className="rounded-xl border border-border bg-background/80 p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <BarChart2 className="h-4 w-4 text-muted-foreground" />
+              <p className="text-sm font-medium">
+                {(attachment.metadata?.poll as { question?: string })?.question ?? attachment.name}
+              </p>
+            </div>
+            <div className="space-y-1">
+              {((attachment.metadata?.poll as { options?: Array<{ id: string; label: string }> })
+                ?.options ?? []
+              ).map((option) => (
+                <div key={option.id} className="text-xs text-muted-foreground px-2 py-1 rounded bg-muted/50">
+                  • {option.label}
+                </div>
+              ))}
+            </div>
           </div>
         );
       case "event":
         return (
-          <div className="mt-2 rounded-xl border border-dashed border-border/60 bg-background/80 p-3 text-xs">
-            <p className="font-semibold">
-              {(attachment.metadata?.event as { title?: string })?.title ?? attachment.name}
-            </p>
-            <p className="text-muted-foreground">
-              {dayjs((attachment.metadata?.event as { date?: string })?.date ?? new Date().toISOString()).format(
-                "MMM D, h:mm A"
-              )}
-            </p>
+          <div className="rounded-xl border border-border bg-background/80 p-2">
+            <div className="flex items-center gap-3">
+              <CalendarDays className="h-5 w-5 text-muted-foreground" />
+              <div className="flex-1">
+                <p className="text-sm font-medium">
+                  {(attachment.metadata?.event as { title?: string })?.title ?? attachment.name}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {dayjs((attachment.metadata?.event as { date?: string })?.date ?? new Date().toISOString()).format(
+                    "MMM D, h:mm A"
+                  )}
+                </p>
+              </div>
+            </div>
           </div>
         );
       case "link":
         return (
-          <div className="mt-2 rounded-xl border border-dashed border-border/60 bg-background/80 p-3 text-xs">
-            <p className="font-semibold">
-              {(attachment.metadata?.link as { title?: string })?.title ?? attachment.name}
-            </p>
-            <p className="line-clamp-2 text-muted-foreground">
-              {(attachment.metadata?.link as { description?: string })?.description ?? "Shared link"}
-            </p>
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              {(attachment.metadata?.link as { url?: string })?.url ?? "https://example.com"}
-            </p>
+          <div className="rounded-xl border border-border bg-background/80 p-2">
+            <div className="flex items-center gap-3">
+              <Link2 className="h-5 w-5 text-muted-foreground" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">
+                  {(attachment.metadata?.link as { title?: string })?.title ?? attachment.name}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {(attachment.metadata?.link as { url?: string })?.url ?? "https://example.com"}
+                </p>
+              </div>
+            </div>
           </div>
         );
       default:
         return (
-          <div className="mt-2 rounded-xl border border-dashed border-border/60 bg-background/80 p-3 text-xs text-muted-foreground">
+          <div className="rounded-xl border border-border bg-background/80 p-2 text-xs text-muted-foreground">
             Attachment ready to send.
           </div>
         );
@@ -1594,16 +2258,15 @@ function AttachmentComposerPreview({ attachment, onRemove }: AttachmentComposerP
   };
 
   return (
-    <div className="rounded-2xl border border-border bg-background/80 p-3 text-xs">
-      <div className="flex items-center justify-between text-[10px] uppercase text-muted-foreground">
-        <span>{label}</span>
-        <div className="flex items-center gap-2">
-          {attachment.sizeLabel && <span className="text-[10px] text-muted-foreground">{attachment.sizeLabel}</span>}
-          <Button variant="ghost" size="icon" onClick={onRemove}>
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-      </div>
+    <div className="group relative">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute -top-1 -right-1 h-6 w-6 rounded-full bg-background border border-border opacity-0 group-hover:opacity-100 transition z-10"
+        onClick={onRemove}
+      >
+        <X className="h-3.5 w-3.5" />
+      </Button>
       {renderBody()}
     </div>
   );
@@ -1618,11 +2281,11 @@ function AttachmentBubblePreview({ attachment }: AttachmentBubblePreviewProps) {
     case "image":
     case "sticker":
       return (
-        <div className="overflow-hidden rounded-xl bg-black/10">
+        <div className="overflow-hidden rounded-xl bg-black/10 max-w-xs">
           {attachment.previewUrl ? (
             <>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={attachment.previewUrl} alt={attachment.name} className="w-full object-cover" />
+              <img src={attachment.previewUrl} alt={attachment.name} className="w-full object-cover max-h-64" />
             </>
           ) : (
             <div className="flex h-40 items-center justify-center text-xs text-muted-foreground">
@@ -1633,9 +2296,9 @@ function AttachmentBubblePreview({ attachment }: AttachmentBubblePreviewProps) {
       );
     case "video":
       return (
-        <div className="overflow-hidden rounded-xl bg-black/10">
+        <div className="overflow-hidden rounded-xl bg-black/10 max-w-xs">
           {attachment.previewUrl ? (
-            <video controls src={attachment.previewUrl} className="w-full" />
+            <video controls src={attachment.previewUrl} className="w-full max-h-64" />
           ) : (
             <div className="flex h-32 items-center justify-center text-xs text-muted-foreground">
               Video preview unavailable
@@ -1646,66 +2309,113 @@ function AttachmentBubblePreview({ attachment }: AttachmentBubblePreviewProps) {
     case "audio":
     case "voice":
       return (
-        <div className="rounded-xl border border-border/70 bg-background/80 p-2">
-          <audio controls src={attachment.previewUrl} className="w-full" />
+        <div className="rounded-xl border border-border/70 bg-background/80 p-2 min-w-[200px]">
+          <audio controls src={attachment.previewUrl} className="w-full h-8" />
         </div>
       );
     case "document":
       return (
-        <div className="flex items-center justify-between rounded-xl border border-border/70 bg-background/80 px-2 py-1">
-          <div className="flex items-center gap-2">
-            <FileText className="h-4 w-4 text-muted-foreground" />
-            <span className="text-xs font-medium">{attachment.name}</span>
+        <div className="flex items-center gap-3 rounded-xl border border-border/70 bg-background/80 px-3 py-2 min-w-[200px]">
+          <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate">{attachment.name}</p>
+            {attachment.sizeInBytes && (
+              <p className="text-xs text-muted-foreground">{formatBytes(attachment.sizeInBytes)}</p>
+            )}
           </div>
-          <Download className="h-4 w-4 text-muted-foreground" />
+          <Download className="h-4 w-4 text-muted-foreground flex-shrink-0" />
         </div>
       );
     case "contact":
       return (
-        <div className="rounded-xl border border-border/70 bg-background/80 px-3 py-2 text-xs">
-          <p className="font-semibold">{attachment.contact?.name ?? attachment.name}</p>
-          <p className="text-muted-foreground">{attachment.contact?.phone ?? "+1 (555) 010-2020"}</p>
+        <div className="rounded-xl border border-border/70 bg-background/80 px-3 py-2 text-xs min-w-[180px]">
+          <div className="flex items-center gap-2 mb-1">
+            <User2 className="h-4 w-4 text-muted-foreground" />
+            <p className="font-semibold">{attachment.contact?.name ?? attachment.name}</p>
+          </div>
+          <p className="text-muted-foreground ml-6">{attachment.contact?.phone ?? "+1 (555) 010-2020"}</p>
         </div>
       );
     case "location":
       return (
-        <div className="overflow-hidden rounded-xl border border-border/70">
-          <div className="h-28 bg-gradient-to-br from-emerald-500/30 to-emerald-700/40" />
-          <div className="px-3 py-2 text-xs">
-            <p className="font-semibold">{attachment.location?.title ?? attachment.name}</p>
-            <p className="text-muted-foreground">{attachment.location?.subtitle ?? "Shared location"}</p>
+        <div className="overflow-hidden rounded-xl border border-border/70 max-w-xs">
+          <div className="h-24 bg-gradient-to-br from-emerald-500/30 to-emerald-700/40" />
+          <div className="px-3 py-2 text-xs bg-background/80">
+            <div className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-muted-foreground" />
+              <p className="font-semibold">{attachment.location?.title ?? attachment.name}</p>
+            </div>
+            <p className="text-muted-foreground ml-6">{attachment.location?.subtitle ?? "Shared location"}</p>
           </div>
         </div>
       );
     case "poll":
       return (
-        <div className="rounded-xl border border-border/70 bg-background/80 px-3 py-2 text-xs">
-          <p className="font-semibold">{attachment.poll?.question ?? attachment.name}</p>
-          <div className="mt-2 space-y-1">
+        <div className="rounded-xl border border-border/70 bg-background/80 px-3 py-2.5 text-xs min-w-[240px] max-w-xs">
+          <div className="flex items-center gap-2 mb-2">
+            <BarChart2 className="h-4 w-4 text-muted-foreground" />
+            <p className="font-semibold">{attachment.poll?.question ?? attachment.name}</p>
+          </div>
+          <div className="space-y-2">
             {(attachment.poll?.options ?? []).map((option) => (
-              <div key={option.id} className="rounded-lg border border-border/50 bg-background px-2 py-1">
-                {option.label}
-              </div>
+              <button
+                key={option.id}
+                type="button"
+                className="w-full text-left rounded-lg border border-border/50 bg-background px-3 py-2 hover:bg-muted/50 transition"
+              >
+                <div className="flex items-center justify-between">
+                  <span>{option.label}</span>
+                  {option.votes !== undefined && (
+                    <Badge variant="secondary" className="text-[10px]">{option.votes}</Badge>
+                  )}
+                </div>
+              </button>
             ))}
           </div>
         </div>
       );
     case "event":
       return (
-        <div className="rounded-xl border border-border/70 bg-background/80 px-3 py-2 text-xs">
-          <p className="font-semibold">{attachment.event?.title ?? attachment.name}</p>
-          <p className="text-muted-foreground">
-            {dayjs(attachment.event?.date ?? new Date().toISOString()).format("MMM D, h:mm A")}
-          </p>
+        <div className="rounded-xl border border-border/70 bg-background/80 px-3 py-2 text-xs min-w-[200px] max-w-xs">
+          <div className="flex items-center gap-2 mb-1">
+            <CalendarDays className="h-4 w-4 text-muted-foreground" />
+            <p className="font-semibold">{attachment.event?.title ?? attachment.name}</p>
+          </div>
+          <div className="ml-6 space-y-0.5">
+            <p className="text-muted-foreground">
+              {dayjs(attachment.event?.date ?? new Date().toISOString()).format("MMM D, YYYY")}
+            </p>
+            <p className="text-muted-foreground">
+              {dayjs(attachment.event?.date ?? new Date().toISOString()).format("h:mm A")}
+            </p>
+            {attachment.event?.location && (
+              <p className="text-muted-foreground">{attachment.event.location}</p>
+            )}
+          </div>
+          <div className="mt-2 flex gap-2">
+            <Button size="sm" variant="secondary" className="h-7 text-xs">
+              <Check className="h-3 w-3 mr-1" />
+              Accept
+            </Button>
+            <Button size="sm" variant="outline" className="h-7 text-xs">
+              Decline
+            </Button>
+          </div>
         </div>
       );
     case "link":
       return (
-        <div className="rounded-xl border border-border/70 bg-background/80 px-3 py-2 text-xs">
-          <p className="font-semibold">{attachment.link?.title ?? attachment.name}</p>
-          <p className="line-clamp-2 text-muted-foreground">
-            {attachment.link?.description ?? attachment.link?.url}
-          </p>
+        <div className="rounded-xl border border-border/70 bg-background/80 px-3 py-2 text-xs min-w-[200px] max-w-xs">
+          <div className="flex items-center gap-2 mb-1">
+            <Link2 className="h-4 w-4 text-muted-foreground" />
+            <p className="font-semibold truncate">{attachment.link?.title ?? attachment.name}</p>
+          </div>
+          {attachment.link?.description && (
+            <p className="line-clamp-2 text-muted-foreground ml-6 mb-1">
+              {attachment.link.description}
+            </p>
+          )}
+          <p className="text-[11px] text-muted-foreground ml-6 truncate">{attachment.link?.url}</p>
         </div>
       );
     default:
