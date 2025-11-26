@@ -12,7 +12,6 @@ import {
   Check,
   ChevronRight,
   CircleDashed,
-  Clock,
   Copy,
   Download,
   Edit2,
@@ -20,7 +19,6 @@ import {
   Filter,
   Flag,
   Forward,
-  Gift,
   Image as ImageIcon,
   Info,
   Link2,
@@ -30,6 +28,7 @@ import {
   Mic,
   MoreVertical,
   Paperclip,
+  Phone,
   Pin,
   Plus,
   Reply,
@@ -38,8 +37,6 @@ import {
   Send,
   ShieldAlert,
   Smile,
-  Sparkles,
-  Sticker,
   Star,
   Tag,
   Trash2,
@@ -48,9 +45,22 @@ import {
   Music2,
   RotateCcw,
   X,
+  Clock,
+  Settings,
+  Bell,
+  Users,
+  Link as LinkIcon,
+  LogOut,
+  CheckCheck,
+  BellOff,
+  Lock,
+  Unlock,
+  FileDown,
+  Eraser,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { LucideIcon } from "lucide-react";
+import { EmojiPicker } from "@ferrucc-io/emoji-picker";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -146,42 +156,6 @@ type BulkAction =
   | "unmute"
   | "delete";
 
-// Emoji data structure
-const EMOJI_CATEGORIES = [
-  {
-    id: "recent",
-    label: "Recent",
-    icon: Clock,
-    emojis: ["😊", "👍", "❤️", "😂", "😮", "😢", "🙏", "🎉"],
-  },
-  {
-    id: "smileys",
-    label: "Smileys & People",
-    icon: Smile,
-    emojis: ["😀", "😃", "😄", "😁", "😆", "😅", "🤣", "😂", "🙂", "🙃", "😉", "😊", "😇", "🥰", "😍", "🤩", "😘", "😗", "😚", "😙", "😋", "😛", "😜", "🤪", "😝"],
-  },
-  {
-    id: "gestures",
-    label: "Gestures",
-    icon: Gift,
-    emojis: ["👍", "👎", "👊", "✊", "🤛", "🤜", "🤞", "✌️", "🤟", "🤘", "👌", "🤏", "👈", "👉", "👆", "👇", "☝️", "✋", "🤚", "🖐", "🖖", "👋", "🤙", "💪"],
-  },
-  {
-    id: "hearts",
-    label: "Hearts",
-    icon: Sparkles,
-    emojis: ["❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "🤎", "💔", "❣️", "💕", "💞", "💓", "💗", "💖", "💘", "💝"],
-  },
-] as const;
-
-const STICKER_PACKS = [
-  { id: "pack1", name: "Funny", preview: "😂", stickers: Array(12).fill("https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=200") },
-  { id: "pack2", name: "Love", preview: "❤️", stickers: Array(12).fill("https://images.unsplash.com/photo-1518806118471-f28b20a1d79d?w=200") },
-  { id: "pack3", name: "Reactions", preview: "😮", stickers: Array(12).fill("https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200") },
-];
-
-const GIF_CATEGORIES = ["Trending", "Happy", "Sad", "Love", "Funny", "Dance", "Celebrate"];
-
 const ATTACHMENT_PICKER_ITEMS: Array<{
   id: DraftAttachmentKind;
   label: string;
@@ -237,13 +211,6 @@ const ATTACHMENT_PICKER_ITEMS: Array<{
     accept: ".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip",
   },
   {
-    id: "contact",
-    label: "Contact",
-    description: "Share details",
-    icon: User2,
-    accent: "from-emerald-500 to-lime-500",
-  },
-  {
     id: "location",
     label: "Location",
     description: "Share a pin",
@@ -263,13 +230,6 @@ const ATTACHMENT_PICKER_ITEMS: Array<{
     description: "Meeting invite",
     icon: CalendarDays,
     accent: "from-fuchsia-500 to-purple-500",
-  },
-  {
-    id: "link",
-    label: "Link",
-    description: "Share a URL",
-    icon: Link2,
-    accent: "from-cyan-500 to-blue-500",
   },
 ] as const;
 
@@ -519,24 +479,35 @@ export function InboxView() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem onSelect={() => setActiveTab("settings")}>Settings</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => setActiveTab("settings")}>
+                      <Settings className="h-4 w-4 mr-2" />
+                      Settings
+                    </DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => setActiveTab("notifications")}>
+                      <Bell className="h-4 w-4 mr-2" />
                       Notifications
                     </DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => setActiveTab("tags")}>
+                      <Tag className="h-4 w-4 mr-2" />
                       Labels
                     </DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => setActiveTab("members")}>
+                      <Users className="h-4 w-4 mr-2" />
                       Team
                     </DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => setActiveTab("connect")}>
+                      <LinkIcon className="h-4 w-4 mr-2" />
                       Linked services
                     </DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => setActiveTab("analytics")}>
+                      <BarChart2 className="h-4 w-4 mr-2" />
                       Analytics
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onSelect={() => toast.info("Logging out")}>Log out</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => toast.info("Logging out")}>
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Log out
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -869,40 +840,54 @@ function ConversationRow({
         </button>
       </ContextMenuTrigger>
       <ContextMenuContent>
-        <ContextMenuItem onSelect={onViewProfile}>Contact info</ContextMenuItem>
+        <ContextMenuItem onSelect={onViewProfile}>
+          <Info className="h-4 w-4 mr-2" />
+          Contact info
+        </ContextMenuItem>
         <ContextMenuItem onSelect={() => onToggleSelection()}>
+          <CheckCheck className="h-4 w-4 mr-2" />
           {isChecked ? "Unselect chat" : "Select chat"}
         </ContextMenuItem>
         <ContextMenuItem onSelect={onFavorite}>
+          <Star className="h-4 w-4 mr-2" />
           {conversation.isFavorite ? "Remove from favourites" : "Add to favourites"}
         </ContextMenuItem>
         <ContextMenuItem onSelect={onSpam}>
+          <ShieldAlert className="h-4 w-4 mr-2" />
           {conversation.isSpam ? "Not spam" : "Mark as spam"}
         </ContextMenuItem>
         <ContextMenuItem onSelect={onPin}>
+          <Pin className="h-4 w-4 mr-2" />
           {conversation.isPinned ? "Unpin chat" : "Pin chat"}
         </ContextMenuItem>
         <ContextMenuItem onSelect={onMute}>
+          {conversation.isMuted ? <Bell className="h-4 w-4 mr-2" /> : <BellOff className="h-4 w-4 mr-2" />}
           {conversation.isMuted ? "Unmute notifications" : "Mute notifications"}
         </ContextMenuItem>
         <ContextMenuItem onSelect={hasUnread ? onMarkRead : onMarkUnread}>
+          <CheckCheck className="h-4 w-4 mr-2" />
           {hasUnread ? "Mark as read" : "Mark as unread"}
         </ContextMenuItem>
         <ContextMenuItem onSelect={onArchive}>
+          <Archive className="h-4 w-4 mr-2" />
           {conversation.isArchived ? "Unarchive chat" : "Archive chat"}
         </ContextMenuItem>
         <ContextMenuItem onSelect={onLock}>
+          {conversation.isLocked ? <Unlock className="h-4 w-4 mr-2" /> : <Lock className="h-4 w-4 mr-2" />}
           {conversation.isLocked ? "Unlock chat" : "Lock chat"}
         </ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem onSelect={() => toast.info("Export chat is coming soon")}>
+          <FileDown className="h-4 w-4 mr-2" />
           Export chat
         </ContextMenuItem>
         <ContextMenuItem onSelect={() => toast.info("Clear chat is coming soon")}>
+          <Eraser className="h-4 w-4 mr-2" />
           Clear chat
         </ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem className="text-destructive" onSelect={onDelete}>
+          <Trash2 className="h-4 w-4 mr-2" />
           Delete chat
         </ContextMenuItem>
         {selectionActive && (
@@ -983,8 +968,18 @@ function ConversationDetail({ conversationId, onOpenProfile }: ConversationDetai
   const [selectedNumber, setSelectedNumber] = useState("+1 (555) 123-4567");
   const [showPollDialog, setShowPollDialog] = useState(false);
   const [showEventDialog, setShowEventDialog] = useState(false);
+  const [showLocationDialog, setShowLocationDialog] = useState(false);
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const [audioVolume, setAudioVolume] = useState<number[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
 
   if (!conversation) return null;
 
@@ -997,7 +992,7 @@ function ConversationDetail({ conversationId, onOpenProfile }: ConversationDetai
   const handleAttachmentPick = (kind: DraftAttachmentKind) => {
     const option = ATTACHMENT_PICKER_ITEMS.find((item) => item.id === kind);
 
-    // Special handling for poll and event
+    // Special handling for poll, event, and location
     if (kind === "poll") {
       setShowPollDialog(true);
       return;
@@ -1005,6 +1000,11 @@ function ConversationDetail({ conversationId, onOpenProfile }: ConversationDetai
 
     if (kind === "event") {
       setShowEventDialog(true);
+      return;
+    }
+
+    if (kind === "location") {
+      setShowLocationDialog(true);
       return;
     }
 
@@ -1038,6 +1038,14 @@ function ConversationDetail({ conversationId, onOpenProfile }: ConversationDetai
         kind === "image" || kind === "video" || kind === "sticker"
           ? URL.createObjectURL(file)
           : undefined;
+
+      // TODO: Upload to S3 here for optimistic UI
+      // uploadToS3(file).then(s3Url => {
+      //   // Update attachment with S3 URL
+      // }).catch(error => {
+      //   toast.error('Failed to upload file');
+      // });
+
       return {
         id: `draft_${id}`,
         kind,
@@ -1120,10 +1128,6 @@ function ConversationDetail({ conversationId, onOpenProfile }: ConversationDetai
       return;
     }
 
-    const preparedAttachments: MessageAttachment[] | undefined = composerAttachments.length
-      ? composerAttachments.map(convertDraftToMessageAttachment)
-      : undefined;
-
     const metadata =
       replyingMessage != null
         ? {
@@ -1133,11 +1137,23 @@ function ConversationDetail({ conversationId, onOpenProfile }: ConversationDetai
           }
         : undefined;
 
-    sendMessage(conversation.id, {
-      content: draft.trim(),
-      attachments: preparedAttachments,
-      metadata,
-    });
+    // Send message with text only if no attachments
+    if (composerAttachments.length === 0) {
+      sendMessage(conversation.id, {
+        content: draft.trim(),
+        metadata,
+      });
+    } else {
+      // Send one message per attachment (WhatsApp Web behavior)
+      composerAttachments.forEach((attachment, index) => {
+        const preparedAttachment = convertDraftToMessageAttachment(attachment);
+        sendMessage(conversation.id, {
+          content: index === 0 ? draft.trim() : "", // Only first message gets the text
+          attachments: [preparedAttachment],
+          metadata: index === 0 ? metadata : undefined, // Only first message gets reply metadata
+        });
+      });
+    }
 
     setDraft("");
     setComposerAttachments([]);
@@ -1154,26 +1170,126 @@ function ConversationDetail({ conversationId, onOpenProfile }: ConversationDetai
     }
   };
 
-  const handleEmojiSelect = (emoji: string) => {
-    setDraft((prev) => prev + emoji);
-    setEmojiPickerOpen(false);
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      // Set up audio context and analyser for volume visualization
+      audioContextRef.current = new AudioContext();
+      analyserRef.current = audioContextRef.current.createAnalyser();
+      const source = audioContextRef.current.createMediaStreamSource(stream);
+      source.connect(analyserRef.current);
+      analyserRef.current.fftSize = 256;
+
+      // Set up media recorder
+      mediaRecorderRef.current = new MediaRecorder(stream);
+      audioChunksRef.current = [];
+
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorderRef.current.start();
+      setIsRecording(true);
+      setRecordingDuration(0);
+      setAudioVolume([]);
+
+      // Start timer
+      recordingIntervalRef.current = setInterval(() => {
+        setRecordingDuration((prev) => prev + 1);
+      }, 1000);
+
+      // Start volume monitoring
+      const updateVolume = () => {
+        if (!analyserRef.current) return;
+
+        const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+        analyserRef.current.getByteFrequencyData(dataArray);
+
+        // Calculate average volume
+        const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+        const normalizedVolume = Math.min(100, (average / 128) * 100);
+
+        setAudioVolume((prev) => {
+          const newVolumes = [...prev, normalizedVolume];
+          // Keep only last 40 values for visualization
+          return newVolumes.slice(-40);
+        });
+
+        if (isRecording) {
+          animationFrameRef.current = requestAnimationFrame(updateVolume);
+        }
+      };
+
+      updateVolume();
+    } catch (error) {
+      console.error('Error accessing microphone:', error);
+      toast.error('Could not access microphone');
+    }
   };
 
-  const handleStickerSelect = (stickerUrl: string) => {
-    const stickerDraft: DraftAttachment = {
-      id: `draft_sticker_${nanoid(6)}`,
-      kind: "sticker",
-      name: "Sticker",
-      previewUrl: stickerUrl,
-    };
-    setComposerAttachments([stickerDraft]);
-    setEmojiPickerOpen(false);
+  const stopRecording = (sendVoice: boolean) => {
+    // Stop timer
+    if (recordingIntervalRef.current) {
+      clearInterval(recordingIntervalRef.current);
+      recordingIntervalRef.current = null;
+    }
+
+    // Stop animation frame
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+
+    // Stop media recorder
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+
+      if (sendVoice) {
+        mediaRecorderRef.current.onstop = () => {
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          const audioUrl = URL.createObjectURL(audioBlob);
+
+          // Create voice attachment and send
+          const voiceAttachment: MessageAttachment = {
+            id: `voice_${nanoid(6)}`,
+            type: 'voice',
+            name: `Voice message (${recordingDuration}s)`,
+            previewUrl: audioUrl,
+            sizeInBytes: audioBlob.size,
+          };
+
+          sendMessage(conversation.id, {
+            content: "",
+            attachments: [voiceAttachment],
+          });
+
+          toast.success(`Voice message sent (${recordingDuration}s)`);
+        };
+      }
+
+      // Stop all tracks
+      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+    }
+
+    // Clean up audio context
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
+
+    analyserRef.current = null;
+    setIsRecording(false);
+    setRecordingDuration(0);
+    setAudioVolume([]);
   };
 
   const hasUnread = conversation.unreadCount > 0;
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="relative flex h-full flex-col">
       <div className="flex items-center justify-between border-b border-border bg-background/80 px-4 py-3">
         <button
           type="button"
@@ -1211,77 +1327,105 @@ function ConversationDetail({ conversationId, onOpenProfile }: ConversationDetai
             </button>
           </div>
         </button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="rounded-full">
-              <MoreVertical className="h-5 w-5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-52">
-            <DropdownMenuItem onSelect={() => onOpenProfile()}>Contact info</DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => toggleFavoriteConversation(conversation.id)}>
-              {conversation.isFavorite ? "Remove from favourites" : "Add to favourites"}
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => toggleSpamConversation(conversation.id)}>
-              {conversation.isSpam ? "Not spam" : "Mark as spam"}
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => togglePinConversation(conversation.id)}>
-              {conversation.isPinned ? "Unpin chat" : "Pin chat"}
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => toggleMuteConversation(conversation.id)}>
-              {conversation.isMuted ? "Unmute notifications" : "Mute notifications"}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onSelect={() =>
-                hasUnread
-                  ? markConversationRead(conversation.id)
-                  : markConversationUnread(conversation.id)
-              }
-            >
-              {hasUnread ? "Mark as read" : "Mark as unread"}
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => toggleArchiveConversation(conversation.id)}>
-              {conversation.isArchived ? "Unarchive chat" : "Archive chat"}
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => toggleLockConversation(conversation.id)}>
-              {conversation.isLocked ? "Unlock chat" : "Lock chat"}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => toast.info("Export chat is coming soon")}>
-              Export chat
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => toast.info("Clear chat is coming soon")}>
-              Clear chat
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="text-destructive"
-              onSelect={() => deleteConversation(conversation.id)}
-            >
-              Delete chat
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-full"
+            onClick={() => toast.info("Audio call feature coming soon")}
+            title="Audio call"
+          >
+            <Phone className="h-5 w-5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-full"
+            onClick={() => toast.info("Video call feature coming soon")}
+            title="Video call"
+          >
+            <VideoIcon className="h-5 w-5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-full"
+            onClick={() => toast.info("Schedule call feature coming soon")}
+            title="Schedule call"
+          >
+            <Clock className="h-5 w-5" />
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="rounded-full">
+                <MoreVertical className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              <DropdownMenuItem onSelect={() => onOpenProfile()}>Contact info</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => toggleFavoriteConversation(conversation.id)}>
+                {conversation.isFavorite ? "Remove from favourites" : "Add to favourites"}
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => toggleSpamConversation(conversation.id)}>
+                {conversation.isSpam ? "Not spam" : "Mark as spam"}
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => togglePinConversation(conversation.id)}>
+                {conversation.isPinned ? "Unpin chat" : "Pin chat"}
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => toggleMuteConversation(conversation.id)}>
+                {conversation.isMuted ? "Unmute notifications" : "Mute notifications"}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() =>
+                  hasUnread
+                    ? markConversationRead(conversation.id)
+                    : markConversationUnread(conversation.id)
+                }
+              >
+                {hasUnread ? "Mark as read" : "Mark as unread"}
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => toggleArchiveConversation(conversation.id)}>
+                {conversation.isArchived ? "Unarchive chat" : "Archive chat"}
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => toggleLockConversation(conversation.id)}>
+                {conversation.isLocked ? "Unlock chat" : "Lock chat"}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => toast.info("Export chat is coming soon")}>
+                Export chat
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => toast.info("Clear chat is coming soon")}>
+                Clear chat
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-destructive"
+                onSelect={() => deleteConversation(conversation.id)}
+              >
+                Delete chat
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       <ScrollArea className="flex-1 bg-background px-6 py-4">
         <div className="space-y-3">
-          {conversation.messages.map((message) => (
-            <MessageBubble
-              key={message.id}
-              message={message}
-              isOwn={message.senderId === currentUserId}
-              onDelete={() => handleDeleteMessage(message.id)}
-              onReply={() => handleReply(message)}
-              onForward={() => toast.info("Forward coming soon")}
-              onFavorite={() => toggleStarMessage(conversation.id, message.id)}
-              onInfo={() => toast.info("Message info coming soon")}
-              onCopy={() => handleCopyMessage(message)}
-              onDownload={() => handleDownloadAttachments(message)}
-              onPin={() => togglePinMessage(conversation.id, message.id)}
-              onReport={() => toast.success("Message reported")}
-              onEdit={() => handleStartEdit(message)}
-              onReact={(emoji) => toggleReaction(conversation.id, message.id, emoji, currentUserId)}
+          {groupMessagesForDisplay(conversation.messages, currentUserId).map((group) => (
+            <MessageGroup
+              key={group.id}
+              group={group}
+              currentUserId={currentUserId}
+              conversationId={conversation.id}
+              conversationTitle={conversation.title}
+              onDeleteMessage={handleDeleteMessage}
+              onReply={handleReply}
+              onCopyMessage={handleCopyMessage}
+              onDownloadAttachments={handleDownloadAttachments}
+              onStartEdit={handleStartEdit}
+              toggleStarMessage={toggleStarMessage}
+              togglePinMessage={togglePinMessage}
+              toggleReaction={toggleReaction}
             />
           ))}
         </div>
@@ -1323,9 +1467,51 @@ function ConversationDetail({ conversationId, onOpenProfile }: ConversationDetai
         </div>
       )}
 
+      {/* Voice Recording Overlay */}
+      {isRecording && (
+        <div className="absolute bottom-0 left-0 right-0 bg-background border-t border-border px-4 py-4 z-50">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="destructive"
+              size="icon"
+              className="rounded-full h-12 w-12"
+              onClick={() => stopRecording(false)}
+            >
+              <Trash2 className="h-5 w-5" />
+            </Button>
+            <div className="flex-1 flex items-center gap-3">
+              <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse"></div>
+              <span className="text-sm font-medium">
+                {Math.floor(recordingDuration / 60)}:{(recordingDuration % 60).toString().padStart(2, '0')}
+              </span>
+              <div className="flex-1 h-8 bg-muted rounded-full flex items-center px-3 gap-1">
+                {audioVolume.map((volume, i) => (
+                  <div
+                    key={i}
+                    className="w-0.5 bg-primary rounded-full transition-all duration-75"
+                    style={{ height: `${Math.max(4, (volume / 100) * 28)}px` }}
+                  />
+                ))}
+              </div>
+            </div>
+            <Button
+              variant="default"
+              size="icon"
+              className="rounded-full h-12 w-12"
+              onClick={() => stopRecording(true)}
+            >
+              <Send className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+      )}
+
       <form
         onSubmit={handleSubmit}
-        className="flex items-end gap-2 border-t border-border bg-background px-4 py-3"
+        className={cn(
+          "flex items-end gap-2 border-t border-border bg-background px-4 py-3",
+          isRecording && "opacity-0 pointer-events-none"
+        )}
       >
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -1333,27 +1519,27 @@ function ConversationDetail({ conversationId, onOpenProfile }: ConversationDetai
               <Paperclip className="h-5 w-5" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-56">
-            {ATTACHMENT_PICKER_ITEMS.map((item) => (
-              <DropdownMenuItem
-                key={item.id}
-                onSelect={() => handleAttachmentPick(item.id)}
-                className="cursor-pointer"
-              >
-                <span
-                  className={cn(
-                    "mr-3 flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br text-white",
-                    item.accent
-                  )}
+          <DropdownMenuContent align="start" className="w-44 p-2">
+            <div className="grid grid-cols-3 gap-2">
+              {ATTACHMENT_PICKER_ITEMS.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => handleAttachmentPick(item.id)}
+                  className="flex flex-col items-center gap-1.5 p-2 rounded-lg hover:bg-muted transition"
                 >
-                  <item.icon className="h-4 w-4" />
-                </span>
-                <div>
-                  <p className="text-sm font-medium">{item.label}</p>
-                  <p className="text-xs text-muted-foreground">{item.description}</p>
-                </div>
-              </DropdownMenuItem>
-            ))}
+                  <span
+                    className={cn(
+                      "flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br text-white",
+                      item.accent
+                    )}
+                  >
+                    <item.icon className="h-5 w-5" />
+                  </span>
+                  <span className="text-[11px] text-center leading-tight">{item.label}</span>
+                </button>
+              ))}
+            </div>
           </DropdownMenuContent>
         </DropdownMenu>
 
@@ -1363,16 +1549,43 @@ function ConversationDetail({ conversationId, onOpenProfile }: ConversationDetai
               <Smile className="h-5 w-5" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent align="start" className="w-[380px] p-0">
-            <EmojiPicker onEmojiSelect={handleEmojiSelect} onStickerSelect={handleStickerSelect} />
+          <PopoverContent align="start" className="w-[350px] p-0 border">
+            <Tabs defaultValue="emojis" className="w-full">
+              <TabsList className="w-full grid grid-cols-3 rounded-none border-b">
+                <TabsTrigger value="emojis">Emojis</TabsTrigger>
+                <TabsTrigger value="stickers">Stickers</TabsTrigger>
+                <TabsTrigger value="gifs">GIFs</TabsTrigger>
+              </TabsList>
+              <TabsContent value="emojis" className="m-0">
+                <EmojiPicker
+                  onEmojiSelect={(emoji: string) => {
+                    setDraft((prev) => prev + emoji);
+                    setEmojiPickerOpen(false);
+                  }}
+                >
+                  <EmojiPicker.Header>
+                    <EmojiPicker.Input placeholder="Search emoji" />
+                  </EmojiPicker.Header>
+                  <EmojiPicker.Group>
+                    <EmojiPicker.List />
+                  </EmojiPicker.Group>
+                </EmojiPicker>
+              </TabsContent>
+              <TabsContent value="stickers" className="m-0 p-4 text-center text-sm text-muted-foreground">
+                Stickers coming soon
+              </TabsContent>
+              <TabsContent value="gifs" className="m-0 p-4 text-center text-sm text-muted-foreground">
+                GIFs coming soon
+              </TabsContent>
+            </Tabs>
           </PopoverContent>
         </Popover>
 
         <textarea
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
-          className="flex-1 resize-none rounded-lg border border-border bg-muted px-3 py-2 text-sm outline-none focus-visible:ring-1 focus-visible:ring-ring max-h-[100px]"
-          rows={1}
+          className="flex-1 resize-none rounded-lg border border-border bg-muted px-4 py-3 text-sm outline-none focus-visible:ring-1 focus-visible:ring-ring max-h-[120px] min-h-[52px]"
+          rows={2}
           placeholder={editingMessage ? "Edit message" : "Type a message"}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
@@ -1387,6 +1600,18 @@ function ConversationDetail({ conversationId, onOpenProfile }: ConversationDetai
           className="hidden"
           onChange={(event) => handleFileSelection(event.target.files)}
         />
+        {!isRecording && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-full"
+            type="button"
+            onClick={startRecording}
+            title="Voice message"
+          >
+            <Mic className="h-5 w-5" />
+          </Button>
+        )}
         <Button
           type="submit"
           size="icon"
@@ -1396,25 +1621,29 @@ function ConversationDetail({ conversationId, onOpenProfile }: ConversationDetai
         </Button>
       </form>
 
-      {/* Full-screen Media Composer */}
-      <MediaComposerDialog
-        open={showMediaComposer}
-        onClose={() => {
-          setShowMediaComposer(false);
-          setComposerAttachments([]);
-        }}
-        attachments={composerAttachments}
-        onRemove={handleRemoveAttachment}
-        onSend={(caption) => {
-          const preparedAttachments = composerAttachments.map(convertDraftToMessageAttachment);
-          sendMessage(conversation.id, {
-            content: caption,
-            attachments: preparedAttachments,
-          });
-          setShowMediaComposer(false);
-          setComposerAttachments([]);
-        }}
-      />
+      {/* Full-screen Media Composer Overlay */}
+      {showMediaComposer && (
+        <MediaComposerOverlay
+          onClose={() => {
+            setShowMediaComposer(false);
+            setComposerAttachments([]);
+          }}
+          attachments={composerAttachments}
+          onRemove={handleRemoveAttachment}
+          onSend={(caption) => {
+            // Send one message per attachment (5 images = 5 messages)
+            composerAttachments.forEach((attachment, index) => {
+              const preparedAttachment = convertDraftToMessageAttachment(attachment);
+              sendMessage(conversation.id, {
+                content: index === 0 ? caption : "", // Only first message gets the caption
+                attachments: [preparedAttachment],
+              });
+            });
+            setShowMediaComposer(false);
+            setComposerAttachments([]);
+          }}
+        />
+      )}
 
       {/* Number Selection Modal */}
       <Dialog open={showNumberModal} onOpenChange={setShowNumberModal}>
@@ -1458,13 +1687,16 @@ function ConversationDetail({ conversationId, onOpenProfile }: ConversationDetai
         open={showPollDialog}
         onClose={() => setShowPollDialog(false)}
         onConfirm={(pollData) => {
-          const pollDraft: DraftAttachment = {
-            id: `draft_poll_${nanoid(6)}`,
-            kind: "poll",
+          const pollAttachment: MessageAttachment = {
+            id: `poll_${nanoid(6)}`,
+            type: "poll",
             name: pollData.question,
-            metadata: { poll: pollData },
+            poll: pollData,
           };
-          setComposerAttachments((prev) => [...prev, pollDraft]);
+          sendMessage(conversation.id, {
+            content: "",
+            attachments: [pollAttachment],
+          });
           setShowPollDialog(false);
         }}
       />
@@ -1474,17 +1706,192 @@ function ConversationDetail({ conversationId, onOpenProfile }: ConversationDetai
         open={showEventDialog}
         onClose={() => setShowEventDialog(false)}
         onConfirm={(eventData) => {
-          const eventDraft: DraftAttachment = {
-            id: `draft_event_${nanoid(6)}`,
-            kind: "event",
+          const eventAttachment: MessageAttachment = {
+            id: `event_${nanoid(6)}`,
+            type: "event",
             name: eventData.title,
-            metadata: { event: eventData },
+            event: eventData,
           };
-          setComposerAttachments((prev) => [...prev, eventDraft]);
+          sendMessage(conversation.id, {
+            content: "",
+            attachments: [eventAttachment],
+          });
           setShowEventDialog(false);
         }}
       />
+
+      {/* Location Dialog */}
+      <LocationDialog
+        open={showLocationDialog}
+        onClose={() => setShowLocationDialog(false)}
+        onConfirm={(locationData) => {
+          const locationAttachment: MessageAttachment = {
+            id: `location_${nanoid(6)}`,
+            type: "location",
+            name: "Pinned location",
+            location: locationData,
+          };
+          sendMessage(conversation.id, {
+            content: "",
+            attachments: [locationAttachment],
+          });
+          setShowLocationDialog(false);
+        }}
+      />
     </div>
+  );
+}
+
+type MessageGroup = {
+  id: string;
+  messages: Message[];
+  isGrouped: boolean;
+  senderId: string;
+};
+
+function groupMessagesForDisplay(messages: Message[], currentUserId: string): MessageGroup[] {
+  const groups: MessageGroup[] = [];
+  let currentGroup: Message[] = [];
+  let lastSenderId: string | null = null;
+
+  messages.forEach((message, index) => {
+    const hasAttachments = (message.attachments?.length ?? 0) > 0;
+    const hasNoContent = !message.content || message.content.trim() === "";
+    const isConsecutive = message.senderId === lastSenderId;
+    const timeDiff = index > 0
+      ? dayjs(message.createdAt).diff(dayjs(messages[index - 1].createdAt), 'second')
+      : Infinity;
+
+    // Group if: same sender, has attachments, no text content, sent within 30 seconds
+    if (
+      hasAttachments &&
+      hasNoContent &&
+      isConsecutive &&
+      timeDiff < 30 &&
+      currentGroup.length > 0
+    ) {
+      currentGroup.push(message);
+    } else {
+      // Flush current group if it exists
+      if (currentGroup.length > 0) {
+        groups.push({
+          id: currentGroup[0].id,
+          messages: currentGroup,
+          isGrouped: currentGroup.length > 1,
+          senderId: currentGroup[0].senderId,
+        });
+        currentGroup = [];
+      }
+
+      // Start new group or add as single message
+      if (hasAttachments && hasNoContent) {
+        currentGroup = [message];
+        lastSenderId = message.senderId;
+      } else {
+        groups.push({
+          id: message.id,
+          messages: [message],
+          isGrouped: false,
+          senderId: message.senderId,
+        });
+        lastSenderId = message.senderId;
+      }
+    }
+  });
+
+  // Flush any remaining group
+  if (currentGroup.length > 0) {
+    groups.push({
+      id: currentGroup[0].id,
+      messages: currentGroup,
+      isGrouped: currentGroup.length > 1,
+      senderId: currentGroup[0].senderId,
+    });
+  }
+
+  return groups;
+}
+
+type MessageGroupProps = {
+  group: MessageGroup;
+  currentUserId: string;
+  conversationId: string;
+  conversationTitle: string;
+  onDeleteMessage: (messageId: string) => void;
+  onReply: (message: Message) => void;
+  onCopyMessage: (message: Message) => void;
+  onDownloadAttachments: (message: Message) => void;
+  onStartEdit: (message: Message) => void;
+  toggleStarMessage: (conversationId: string, messageId: string) => void;
+  togglePinMessage: (conversationId: string, messageId: string) => void;
+  toggleReaction: (conversationId: string, messageId: string, emoji: string, userId: string) => void;
+};
+
+function MessageGroup({
+  group,
+  currentUserId,
+  conversationId,
+  conversationTitle,
+  onDeleteMessage,
+  onReply,
+  onCopyMessage,
+  onDownloadAttachments,
+  onStartEdit,
+  toggleStarMessage,
+  togglePinMessage,
+  toggleReaction,
+}: MessageGroupProps) {
+  const isOwn = group.senderId === currentUserId;
+
+  // If grouped, render all attachments in one bubble
+  if (group.isGrouped) {
+    const allAttachments = group.messages.flatMap(m => m.attachments ?? []);
+    const firstMessage = group.messages[0];
+
+    return (
+      <div className={cn("flex w-full", isOwn ? "justify-end" : "justify-start")}>
+        <div className="relative max-w-[70%] rounded-2xl shadow-sm px-1.5 py-1.5 bg-secondary">
+          {/* Render all attachments in a grid */}
+          <div className={cn(
+            "grid gap-1",
+            allAttachments.length === 1 && "grid-cols-1",
+            allAttachments.length === 2 && "grid-cols-2",
+            allAttachments.length >= 3 && "grid-cols-2"
+          )}>
+            {allAttachments.map((attachment) => (
+              <AttachmentBubblePreview key={attachment.id} attachment={attachment} />
+            ))}
+          </div>
+          <div className="mt-1 flex items-center justify-end gap-2 px-1.5 pb-0.5 text-[11px] text-muted-foreground">
+            <span>{dayjs(firstMessage.createdAt).format("HH:mm")}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Otherwise render individual message bubbles
+  return (
+    <>
+      {group.messages.map((message) => (
+        <MessageBubble
+          key={message.id}
+          message={message}
+          isOwn={isOwn}
+          onDelete={() => onDeleteMessage(message.id)}
+          onReply={() => onReply(message)}
+          onForward={() => toast.info("Forward coming soon")}
+          onFavorite={() => toggleStarMessage(conversationId, message.id)}
+          onInfo={() => toast.info("Message info coming soon")}
+          onCopy={() => onCopyMessage(message)}
+          onDownload={() => onDownloadAttachments(message)}
+          onPin={() => togglePinMessage(conversationId, message.id)}
+          onReport={() => toast.success("Message reported")}
+          onEdit={() => onStartEdit(message)}
+          onReact={(emoji) => toggleReaction(conversationId, message.id, emoji, currentUserId)}
+        />
+      ))}
+    </>
   );
 }
 
@@ -1519,6 +1926,7 @@ function MessageBubble({
   onReport,
   onEdit,
 }: MessageBubbleProps) {
+  const [reactionPickerOpen, setReactionPickerOpen] = useState(false);
   const timestamp = dayjs(message.createdAt).format("HH:mm");
   const canEdit =
     isOwn &&
@@ -1526,14 +1934,43 @@ function MessageBubble({
     (message.attachments?.length ?? 0) === 0;
   const reactionMap = groupReactions(message.reactions);
 
+  // Check if message is emoji-only (no attachments, only emojis)
+  const emojiRegex = /^(\p{Emoji_Presentation}|\p{Emoji}\uFE0F)+$/u;
+  const isEmojiOnly = !message.attachments?.length && message.content && emojiRegex.test(message.content.trim());
+  const emojiCount = isEmojiOnly ? [...message.content.trim()].filter(char => emojiRegex.test(char)).length : 0;
+
+  // 1 emoji = no bubble, 2+ = with bubble (as per WhatsApp Web behavior)
+  const showBubbleForEmoji = isEmojiOnly && emojiCount >= 2;
+  const showNoBubble = isEmojiOnly && emojiCount === 1;
+
+  // Determine emoji size based on count
+  let emojiSize = "";
+  if (isEmojiOnly) {
+    if (emojiCount === 1) {
+      emojiSize = "text-7xl"; // Large single emoji, no bubble
+    } else if (emojiCount <= 2) {
+      emojiSize = "text-5xl"; // Medium for 2 emojis, with bubble
+    } else if (emojiCount <= 4) {
+      emojiSize = "text-4xl"; // Smaller for 3-4 emojis, with bubble
+    }
+  }
+
+  const hasAttachments = message.attachments && message.attachments.length > 0;
+
   return (
     <div className={cn("flex w-full", isOwn ? "justify-end" : "justify-start")}>
       <ContextMenu>
         <ContextMenuTrigger asChild>
           <div
             className={cn(
-              "relative max-w-[70%] rounded-2xl px-3 py-2 shadow-sm",
-              isOwn ? "bg-secondary text-secondary-foreground" : "bg-muted"
+              "relative max-w-[70%]",
+              // Show bubble for non-emoji messages OR for 2+ emojis
+              (showBubbleForEmoji || !isEmojiOnly) && "rounded-2xl shadow-sm",
+              // No bubble for single emoji
+              !showNoBubble && !hasAttachments && "px-3 py-2",
+              !showNoBubble && hasAttachments && "px-1.5 py-1.5", // Reduced padding for attachments
+              // Apply background only if we're showing a bubble
+              (showBubbleForEmoji || !isEmojiOnly) && (isOwn ? "bg-secondary text-secondary-foreground" : "bg-muted")
             )}
           >
             {message.isPinned && (
@@ -1542,7 +1979,7 @@ function MessageBubble({
               </div>
             )}
             {message.metadata && (message.metadata as Record<string, string>).replyPreview && (
-              <div className="mb-2 rounded-lg border border-border/60 bg-background/70 p-2 text-xs">
+              <div className={cn("rounded-lg border border-border/60 bg-background/70 p-2 text-xs", hasAttachments ? "mb-1.5" : "mb-2")}>
                 <p className="font-medium">
                   {(message.metadata as Record<string, string>).replyAuthor ?? "Unknown"}
                 </p>
@@ -1551,21 +1988,32 @@ function MessageBubble({
                 </p>
               </div>
             )}
-            {message.attachments && message.attachments.length > 0 && (
-              <div className="mb-2 space-y-2">
-                {message.attachments.map((attachment) => (
+            {hasAttachments && (
+              <div className={cn(message.content ? "mb-1" : "")}>
+                {message.attachments!.map((attachment) => (
                   <AttachmentBubblePreview key={attachment.id} attachment={attachment} />
                 ))}
               </div>
             )}
             {message.content && (
-              <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
+              <p className={cn(
+                "whitespace-pre-wrap leading-relaxed",
+                isEmojiOnly ? emojiSize : "text-sm",
+                hasAttachments && "px-1.5"
+              )}>
+                {message.content}
+              </p>
             )}
-            <div className="mt-1 flex flex-wrap items-center justify-end gap-2 text-[11px] text-muted-foreground">
-              {message.isStarred && <Star className="h-3 w-3" />}
-              {message.editedAt && <span>Edited</span>}
-              <span>{timestamp}</span>
-            </div>
+            {!showNoBubble && (
+              <div className={cn(
+                "mt-1 flex flex-wrap items-center justify-end gap-2 text-[11px] text-muted-foreground",
+                hasAttachments && "px-1.5 pb-0.5"
+              )}>
+                {message.isStarred && <Star className="h-3 w-3" />}
+                {message.editedAt && <span>Edited</span>}
+                <span>{timestamp}</span>
+              </div>
+            )}
             {reactionMap.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-1">
                 {reactionMap.map(({ emoji, count }) => (
@@ -1587,16 +2035,9 @@ function MessageBubble({
           <ContextMenuItem onSelect={onForward}>
             <Forward className="mr-2 h-4 w-4" /> Forward
           </ContextMenuItem>
-          <ContextMenuSub>
-            <ContextMenuSubTrigger>React</ContextMenuSubTrigger>
-            <ContextMenuSubContent>
-              {REACTION_EMOJIS.map((emoji) => (
-                <ContextMenuItem key={emoji} onSelect={() => onReact(emoji)}>
-                  {emoji}
-                </ContextMenuItem>
-              ))}
-            </ContextMenuSubContent>
-          </ContextMenuSub>
+          <ContextMenuItem onSelect={() => setReactionPickerOpen(true)}>
+            <Smile className="mr-2 h-4 w-4" /> React
+          </ContextMenuItem>
           <ContextMenuItem onSelect={onCopy}>
             <Copy className="mr-2 h-4 w-4" /> Copy
           </ContextMenuItem>
@@ -1625,129 +2066,52 @@ function MessageBubble({
           </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
+
+      {/* Reaction Emoji Picker */}
+      <Popover open={reactionPickerOpen} onOpenChange={setReactionPickerOpen}>
+        <PopoverContent className="w-[350px] p-0 border">
+          <Tabs defaultValue="emojis" className="w-full">
+            <TabsList className="w-full grid grid-cols-3 rounded-none border-b">
+              <TabsTrigger value="emojis">Emojis</TabsTrigger>
+              <TabsTrigger value="stickers">Stickers</TabsTrigger>
+              <TabsTrigger value="gifs">GIFs</TabsTrigger>
+            </TabsList>
+            <TabsContent value="emojis" className="m-0">
+              <EmojiPicker
+                onEmojiSelect={(emoji: string) => {
+                  onReact(emoji);
+                  setReactionPickerOpen(false);
+                }}
+              >
+                <EmojiPicker.Header>
+                  <EmojiPicker.Input placeholder="Search emoji" />
+                </EmojiPicker.Header>
+                <EmojiPicker.Group>
+                  <EmojiPicker.List />
+                </EmojiPicker.Group>
+              </EmojiPicker>
+            </TabsContent>
+            <TabsContent value="stickers" className="m-0 p-4 text-center text-sm text-muted-foreground">
+              Stickers coming soon
+            </TabsContent>
+            <TabsContent value="gifs" className="m-0 p-4 text-center text-sm text-muted-foreground">
+              GIFs coming soon
+            </TabsContent>
+          </Tabs>
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }
 
-type EmojiPickerProps = {
-  onEmojiSelect: (emoji: string) => void;
-  onStickerSelect: (stickerUrl: string) => void;
-};
-
-function EmojiPicker({ onEmojiSelect, onStickerSelect }: EmojiPickerProps) {
-  const [searchTerm, setSearchTerm] = useState("");
-
-  return (
-    <Tabs defaultValue="emojis" className="w-full">
-      <TabsList className="w-full grid grid-cols-3">
-        <TabsTrigger value="emojis">Emojis</TabsTrigger>
-        <TabsTrigger value="stickers">Stickers</TabsTrigger>
-        <TabsTrigger value="gifs">GIFs</TabsTrigger>
-      </TabsList>
-
-      <TabsContent value="emojis" className="p-2">
-        <Input
-          placeholder="Search emojis..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="mb-2 h-8 text-xs"
-        />
-        <ScrollArea className="h-[280px]">
-          <div className="space-y-4">
-            {EMOJI_CATEGORIES.map((category) => (
-              <div key={category.id}>
-                <div className="flex items-center gap-2 mb-2 sticky top-0 bg-background/95 backdrop-blur-sm py-1">
-                  <category.icon className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="text-xs font-medium text-muted-foreground">{category.label}</span>
-                </div>
-                <div className="grid grid-cols-8 gap-1">
-                  {category.emojis.map((emoji) => (
-                    <button
-                      key={emoji}
-                      type="button"
-                      onClick={() => onEmojiSelect(emoji)}
-                      className="p-2 hover:bg-muted rounded-md transition text-xl"
-                    >
-                      {emoji}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </ScrollArea>
-      </TabsContent>
-
-      <TabsContent value="stickers" className="p-2">
-        <ScrollArea className="h-[320px]">
-          <div className="space-y-4">
-            {STICKER_PACKS.map((pack) => (
-              <div key={pack.id}>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xl">{pack.preview}</span>
-                  <span className="text-xs font-medium">{pack.name}</span>
-                </div>
-                <div className="grid grid-cols-4 gap-2">
-                  {pack.stickers.map((sticker, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => onStickerSelect(sticker)}
-                      className="aspect-square overflow-hidden rounded-lg border border-border hover:border-primary transition"
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={sticker} alt="Sticker" className="w-full h-full object-cover" />
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </ScrollArea>
-      </TabsContent>
-
-      <TabsContent value="gifs" className="p-2">
-        <Input
-          placeholder="Search GIFs..."
-          className="mb-2 h-8 text-xs"
-        />
-        <div className="flex flex-wrap gap-2 mb-2">
-          {GIF_CATEGORIES.map((category) => (
-            <Badge key={category} variant="outline" className="cursor-pointer hover:bg-secondary text-[10px]">
-              {category}
-            </Badge>
-          ))}
-        </div>
-        <ScrollArea className="h-[240px]">
-          <div className="grid grid-cols-2 gap-2">
-            {Array(8).fill(null).map((_, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => toast.info("GIF selection coming soon")}
-                className="aspect-video overflow-hidden rounded-lg border border-border hover:border-primary transition bg-muted"
-              >
-                <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
-                  GIF {idx + 1}
-                </div>
-              </button>
-            ))}
-          </div>
-        </ScrollArea>
-      </TabsContent>
-    </Tabs>
-  );
-}
-
-type MediaComposerDialogProps = {
-  open: boolean;
+type MediaComposerOverlayProps = {
   onClose: () => void;
   attachments: DraftAttachment[];
   onRemove: (id: string) => void;
   onSend: (caption: string) => void;
 };
 
-function MediaComposerDialog({ open, onClose, attachments, onRemove, onSend }: MediaComposerDialogProps) {
+function MediaComposerOverlay({ onClose, attachments, onRemove, onSend }: MediaComposerOverlayProps) {
   const [caption, setCaption] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -1757,32 +2121,33 @@ function MediaComposerDialog({ open, onClose, attachments, onRemove, onSend }: M
     setActiveIndex(0);
   };
 
-  if (!open) return null;
-
   const activeAttachment = attachments[activeIndex];
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl h-[90vh] p-0 gap-0">
-        <div className="flex flex-col h-full">
+    <div className="absolute inset-0 z-50 flex flex-col bg-background">
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b">
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" onClick={onClose}>
+          <div className="flex items-center justify-between px-6 py-4 border-b bg-background/95 backdrop-blur-sm">
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">
                 <X className="h-5 w-5" />
               </Button>
-              <span className="font-medium">
-                {attachments.length} {attachments.length === 1 ? 'file' : 'files'}
-              </span>
+              <div>
+                <p className="font-semibold text-base">
+                  {attachments.length} {attachments.length === 1 ? 'file' : 'files'} selected
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {activeIndex + 1} of {attachments.length}
+                </p>
+              </div>
             </div>
-            <Button onClick={handleSend}>
-              <Send className="h-4 w-4 mr-2" />
-              Send
+            <Button onClick={handleSend} size="lg" className="gap-2">
+              <Send className="h-4 w-4" />
+              Send {attachments.length > 1 ? `${attachments.length} messages` : 'message'}
             </Button>
           </div>
 
           {/* Preview Area */}
-          <div className="flex-1 bg-black/95 flex items-center justify-center p-4 relative">
+          <div className="flex-1 bg-black/95 flex items-center justify-center p-8 relative overflow-hidden">
             {activeAttachment && (
               <>
                 {activeAttachment.kind === "image" && activeAttachment.previewUrl && (
@@ -1790,14 +2155,14 @@ function MediaComposerDialog({ open, onClose, attachments, onRemove, onSend }: M
                   <img
                     src={activeAttachment.previewUrl}
                     alt={activeAttachment.name}
-                    className="max-w-full max-h-full object-contain"
+                    className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
                   />
                 )}
                 {activeAttachment.kind === "video" && activeAttachment.previewUrl && (
                   <video
                     src={activeAttachment.previewUrl}
                     controls
-                    className="max-w-full max-h-full"
+                    className="max-w-full max-h-full rounded-lg shadow-2xl"
                   />
                 )}
               </>
@@ -1809,46 +2174,51 @@ function MediaComposerDialog({ open, onClose, attachments, onRemove, onSend }: M
                 <Button
                   variant="secondary"
                   size="icon"
-                  className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full"
+                  className="absolute left-6 top-1/2 -translate-y-1/2 rounded-full h-12 w-12 shadow-lg hover:scale-110 transition-transform"
                   onClick={() => setActiveIndex((prev) => (prev > 0 ? prev - 1 : attachments.length - 1))}
                 >
-                  <ChevronRight className="h-5 w-5 rotate-180" />
+                  <ChevronRight className="h-6 w-6 rotate-180" />
                 </Button>
                 <Button
                   variant="secondary"
                   size="icon"
-                  className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full"
+                  className="absolute right-6 top-1/2 -translate-y-1/2 rounded-full h-12 w-12 shadow-lg hover:scale-110 transition-transform"
                   onClick={() => setActiveIndex((prev) => (prev < attachments.length - 1 ? prev + 1 : 0))}
                 >
-                  <ChevronRight className="h-5 w-5" />
+                  <ChevronRight className="h-6 w-6" />
                 </Button>
               </>
             )}
 
             {/* Edit tools */}
-            <div className="absolute top-4 right-4 flex gap-2">
-              <Button variant="secondary" size="icon" className="rounded-full">
-                <Scissors className="h-4 w-4" />
+            <div className="absolute top-6 right-6 flex gap-3">
+              <Button variant="secondary" size="icon" className="rounded-full h-10 w-10 shadow-lg" title="Crop">
+                <Scissors className="h-5 w-5" />
               </Button>
-              <Button variant="secondary" size="icon" className="rounded-full">
-                <RotateCcw className="h-4 w-4" />
+              <Button variant="secondary" size="icon" className="rounded-full h-10 w-10 shadow-lg" title="Rotate">
+                <RotateCcw className="h-5 w-5" />
               </Button>
+            </div>
+
+            {/* File name display */}
+            <div className="absolute bottom-6 left-6 bg-black/60 backdrop-blur-sm px-4 py-2 rounded-full">
+              <p className="text-white text-sm font-medium">{activeAttachment.name}</p>
             </div>
           </div>
 
           {/* Thumbnail strip */}
           {attachments.length > 1 && (
-            <div className="border-t bg-background p-3">
+            <div className="border-t bg-background px-6 py-4">
               <ScrollArea className="w-full">
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                   {attachments.map((attachment, idx) => (
-                    <div key={attachment.id} className="relative">
+                    <div key={attachment.id} className="relative flex-shrink-0">
                       <button
                         type="button"
                         onClick={() => setActiveIndex(idx)}
                         className={cn(
-                          "relative h-16 w-16 rounded-lg overflow-hidden border-2 transition",
-                          activeIndex === idx ? "border-primary" : "border-transparent"
+                          "relative h-20 w-20 rounded-xl overflow-hidden border-2 transition-all hover:scale-105",
+                          activeIndex === idx ? "border-primary shadow-lg scale-105" : "border-border/50"
                         )}
                       >
                         {attachment.kind === "image" && attachment.previewUrl && (
@@ -1856,15 +2226,15 @@ function MediaComposerDialog({ open, onClose, attachments, onRemove, onSend }: M
                           <img src={attachment.previewUrl} alt="" className="w-full h-full object-cover" />
                         )}
                         {attachment.kind === "video" && (
-                          <div className="w-full h-full bg-black/20 flex items-center justify-center">
-                            <VideoIcon className="h-6 w-6 text-white" />
+                          <div className="w-full h-full bg-black/40 flex items-center justify-center backdrop-blur-sm">
+                            <VideoIcon className="h-8 w-8 text-white" />
                           </div>
                         )}
                       </button>
                       <Button
                         variant="destructive"
                         size="icon"
-                        className="absolute -top-2 -right-2 h-5 w-5 rounded-full"
+                        className="absolute -top-2 -right-2 h-6 w-6 rounded-full shadow-lg hover:scale-110 transition-transform"
                         onClick={(e) => {
                           e.stopPropagation();
                           onRemove(attachment.id);
@@ -1873,7 +2243,7 @@ function MediaComposerDialog({ open, onClose, attachments, onRemove, onSend }: M
                           }
                         }}
                       >
-                        <X className="h-3 w-3" />
+                        <X className="h-4 w-4" />
                       </Button>
                     </div>
                   ))}
@@ -1883,18 +2253,19 @@ function MediaComposerDialog({ open, onClose, attachments, onRemove, onSend }: M
           )}
 
           {/* Caption input */}
-          <div className="border-t p-4">
-            <Textarea
-              placeholder="Add a caption..."
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              className="resize-none"
-              rows={2}
-            />
+          <div className="border-t px-6 py-4 bg-background">
+            <div className="flex items-center gap-3">
+              <Smile className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+              <Textarea
+                placeholder="Add a caption... (optional)"
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                className="resize-none flex-1 min-h-[60px] text-sm"
+                rows={2}
+              />
+            </div>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+    </div>
   );
 }
 
@@ -2105,6 +2476,70 @@ function EventDialog({ open, onClose, onConfirm }: EventDialogProps) {
   );
 }
 
+type LocationDialogProps = {
+  open: boolean;
+  onClose: () => void;
+  onConfirm: (data: { title: string; subtitle: string; latitude?: number; longitude?: number }) => void;
+};
+
+function LocationDialog({ open, onClose, onConfirm }: LocationDialogProps) {
+  const [title, setTitle] = useState("");
+  const [subtitle, setSubtitle] = useState("");
+
+  const handleConfirm = () => {
+    if (!title.trim()) {
+      toast.error("Please provide a location name");
+      return;
+    }
+
+    onConfirm({
+      title: title.trim(),
+      subtitle: subtitle.trim() || "Location",
+    });
+
+    // Reset
+    setTitle("");
+    setSubtitle("");
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Share Location</DialogTitle>
+          <DialogDescription>Choose a location to share</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="locationTitle">Location Name</Label>
+            <Input
+              id="locationTitle"
+              placeholder="Robocall HQ"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="mt-1.5"
+            />
+          </div>
+          <div>
+            <Label htmlFor="locationSubtitle">Address</Label>
+            <Input
+              id="locationSubtitle"
+              placeholder="123 Queen Street"
+              value={subtitle}
+              onChange={(e) => setSubtitle(e.target.value)}
+              className="mt-1.5"
+            />
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 mt-4">
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={handleConfirm}>Share Location</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 type AttachmentComposerPreviewProps = {
   attachment: DraftAttachment;
   onRemove: () => void;
@@ -2281,11 +2716,11 @@ function AttachmentBubblePreview({ attachment }: AttachmentBubblePreviewProps) {
     case "image":
     case "sticker":
       return (
-        <div className="overflow-hidden rounded-xl bg-black/10 max-w-xs">
+        <div className="overflow-hidden rounded-lg bg-muted/20 max-w-sm">
           {attachment.previewUrl ? (
             <>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={attachment.previewUrl} alt={attachment.name} className="w-full object-cover max-h-64" />
+              <img src={attachment.previewUrl} alt={attachment.name} className="w-full object-cover max-h-80" />
             </>
           ) : (
             <div className="flex h-40 items-center justify-center text-xs text-muted-foreground">
@@ -2296,9 +2731,16 @@ function AttachmentBubblePreview({ attachment }: AttachmentBubblePreviewProps) {
       );
     case "video":
       return (
-        <div className="overflow-hidden rounded-xl bg-black/10 max-w-xs">
+        <div className="overflow-hidden rounded-lg bg-muted/20 max-w-sm relative">
           {attachment.previewUrl ? (
-            <video controls src={attachment.previewUrl} className="w-full max-h-64" />
+            <>
+              <video src={attachment.previewUrl} className="w-full max-h-80" />
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="w-14 h-14 rounded-full bg-background/90 flex items-center justify-center">
+                  <VideoIcon className="h-6 w-6 text-primary ml-0.5" />
+                </div>
+              </div>
+            </>
           ) : (
             <div className="flex h-32 items-center justify-center text-xs text-muted-foreground">
               Video preview unavailable
@@ -2309,14 +2751,25 @@ function AttachmentBubblePreview({ attachment }: AttachmentBubblePreviewProps) {
     case "audio":
     case "voice":
       return (
-        <div className="rounded-xl border border-border/70 bg-background/80 p-2 min-w-[200px]">
-          <audio controls src={attachment.previewUrl} className="w-full h-8" />
+        <div className="rounded-lg bg-muted/40 px-3 py-2 min-w-[280px] flex items-center gap-3">
+          <button
+            type="button"
+            className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 hover:bg-primary/30 transition"
+          >
+            <Music2 className="h-4 w-4 text-primary" />
+          </button>
+          <div className="flex-1 flex items-center gap-2">
+            <div className="h-8 flex-1 flex items-center bg-primary/10 rounded-full px-2">
+              <div className="h-1 bg-primary/40 rounded-full w-2/5" />
+            </div>
+            <span className="text-xs text-muted-foreground tabular-nums flex-shrink-0">0:42</span>
+          </div>
         </div>
       );
     case "document":
       return (
-        <div className="flex items-center gap-3 rounded-xl border border-border/70 bg-background/80 px-3 py-2 min-w-[200px]">
-          <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+        <div className="flex items-center gap-2.5 rounded-lg bg-muted/40 px-2.5 py-2 min-w-[200px]">
+          <FileText className="h-5 w-5 text-primary flex-shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium truncate">{attachment.name}</p>
             {attachment.sizeInBytes && (
@@ -2328,94 +2781,113 @@ function AttachmentBubblePreview({ attachment }: AttachmentBubblePreviewProps) {
       );
     case "contact":
       return (
-        <div className="rounded-xl border border-border/70 bg-background/80 px-3 py-2 text-xs min-w-[180px]">
-          <div className="flex items-center gap-2 mb-1">
-            <User2 className="h-4 w-4 text-muted-foreground" />
-            <p className="font-semibold">{attachment.contact?.name ?? attachment.name}</p>
+        <div className="rounded-lg bg-muted/40 px-3 py-2 text-sm min-w-[180px]">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+              <User2 className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <p className="font-medium text-sm">{attachment.contact?.name ?? attachment.name}</p>
+              <p className="text-xs text-muted-foreground">{attachment.contact?.phone ?? "+1 (555) 010-2020"}</p>
+            </div>
           </div>
-          <p className="text-muted-foreground ml-6">{attachment.contact?.phone ?? "+1 (555) 010-2020"}</p>
         </div>
       );
     case "location":
       return (
-        <div className="overflow-hidden rounded-xl border border-border/70 max-w-xs">
-          <div className="h-24 bg-gradient-to-br from-emerald-500/30 to-emerald-700/40" />
-          <div className="px-3 py-2 text-xs bg-background/80">
-            <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-muted-foreground" />
-              <p className="font-semibold">{attachment.location?.title ?? attachment.name}</p>
-            </div>
-            <p className="text-muted-foreground ml-6">{attachment.location?.subtitle ?? "Shared location"}</p>
+        <div className="overflow-hidden rounded-lg max-w-xs">
+          <div className="h-24 bg-gradient-to-br from-emerald-500/30 to-emerald-700/40 relative flex items-center justify-center">
+            <MapPin className="h-8 w-8 text-primary" />
+          </div>
+          <div className="px-3 py-2 bg-muted/40">
+            <p className="font-medium text-sm">{attachment.location?.title ?? attachment.name}</p>
+            <p className="text-xs text-muted-foreground">{attachment.location?.subtitle ?? "Shared location"}</p>
           </div>
         </div>
       );
     case "poll":
       return (
-        <div className="rounded-xl border border-border/70 bg-background/80 px-3 py-2.5 text-xs min-w-[240px] max-w-xs">
-          <div className="flex items-center gap-2 mb-2">
-            <BarChart2 className="h-4 w-4 text-muted-foreground" />
-            <p className="font-semibold">{attachment.poll?.question ?? attachment.name}</p>
+        <div className="rounded-lg bg-muted/40 px-3 py-2.5 text-sm min-w-[260px] max-w-sm">
+          <div className="flex items-center gap-2 mb-3">
+            <BarChart2 className="h-4 w-4 text-primary" />
+            <p className="font-medium">{attachment.poll?.question ?? attachment.name}</p>
           </div>
+          <p className="text-xs text-muted-foreground mb-2">Select one or more</p>
           <div className="space-y-2">
             {(attachment.poll?.options ?? []).map((option) => (
               <button
                 key={option.id}
                 type="button"
-                className="w-full text-left rounded-lg border border-border/50 bg-background px-3 py-2 hover:bg-muted/50 transition"
+                className="w-full text-left rounded-md bg-background/50 px-3 py-2 hover:bg-background/80 transition flex items-center justify-between gap-3"
               >
-                <div className="flex items-center justify-between">
-                  <span>{option.label}</span>
-                  {option.votes !== undefined && (
-                    <Badge variant="secondary" className="text-[10px]">{option.votes}</Badge>
-                  )}
+                <div className="flex items-center gap-3 flex-1">
+                  <div className="w-4 h-4 rounded-full border-2 border-muted-foreground/50 flex-shrink-0" />
+                  <span className="text-sm">{option.label}</span>
                 </div>
+                {option.votes !== undefined && (
+                  <span className="text-xs text-muted-foreground flex-shrink-0">{option.votes}</span>
+                )}
               </button>
             ))}
           </div>
+          <button className="mt-3 text-xs text-primary hover:underline">
+            View votes
+          </button>
         </div>
       );
     case "event":
       return (
-        <div className="rounded-xl border border-border/70 bg-background/80 px-3 py-2 text-xs min-w-[200px] max-w-xs">
-          <div className="flex items-center gap-2 mb-1">
-            <CalendarDays className="h-4 w-4 text-muted-foreground" />
-            <p className="font-semibold">{attachment.event?.title ?? attachment.name}</p>
+        <div className="rounded-lg bg-muted/40 px-3 py-2.5 text-sm min-w-[220px] max-w-sm">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded bg-primary/20 flex items-center justify-center flex-shrink-0">
+              <CalendarDays className="h-5 w-5 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-sm mb-1">{attachment.event?.title ?? attachment.name}</p>
+              <div className="space-y-0.5 text-xs text-muted-foreground">
+                <p className="font-medium">
+                  {dayjs(attachment.event?.date ?? new Date().toISOString()).format("dddd, MMMM D, YYYY")}
+                </p>
+                <p>
+                  {dayjs(attachment.event?.date ?? new Date().toISOString()).format("h:mm A")}
+                </p>
+                {attachment.event?.location && (
+                  <div className="flex items-center gap-1 mt-1">
+                    <MapPin className="h-3 w-3" />
+                    <p>{attachment.event.location}</p>
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
+                <Avatar className="h-5 w-5">
+                  <AvatarFallback className="text-[10px]">1</AvatarFallback>
+                </Avatar>
+                <span>1 going</span>
+              </div>
+            </div>
           </div>
-          <div className="ml-6 space-y-0.5">
-            <p className="text-muted-foreground">
-              {dayjs(attachment.event?.date ?? new Date().toISOString()).format("MMM D, YYYY")}
-            </p>
-            <p className="text-muted-foreground">
-              {dayjs(attachment.event?.date ?? new Date().toISOString()).format("h:mm A")}
-            </p>
-            {attachment.event?.location && (
-              <p className="text-muted-foreground">{attachment.event.location}</p>
-            )}
-          </div>
-          <div className="mt-2 flex gap-2">
-            <Button size="sm" variant="secondary" className="h-7 text-xs">
-              <Check className="h-3 w-3 mr-1" />
-              Accept
-            </Button>
-            <Button size="sm" variant="outline" className="h-7 text-xs">
-              Decline
-            </Button>
-          </div>
+          <button className="mt-3 w-full text-center text-sm text-primary hover:underline">
+            Edit event
+          </button>
         </div>
       );
     case "link":
       return (
-        <div className="rounded-xl border border-border/70 bg-background/80 px-3 py-2 text-xs min-w-[200px] max-w-xs">
-          <div className="flex items-center gap-2 mb-1">
-            <Link2 className="h-4 w-4 text-muted-foreground" />
-            <p className="font-semibold truncate">{attachment.link?.title ?? attachment.name}</p>
+        <div className="rounded-lg bg-muted/40 px-3 py-2.5 text-sm min-w-[200px] max-w-xs">
+          <div className="flex items-start gap-2.5">
+            <div className="w-9 h-9 rounded bg-primary/20 flex items-center justify-center flex-shrink-0">
+              <Link2 className="h-4 w-4 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-sm truncate mb-0.5">{attachment.link?.title ?? attachment.name}</p>
+              {attachment.link?.description && (
+                <p className="line-clamp-2 text-xs text-muted-foreground mb-1">
+                  {attachment.link.description}
+                </p>
+              )}
+              <p className="text-[11px] text-muted-foreground truncate">{attachment.link?.url}</p>
+            </div>
           </div>
-          {attachment.link?.description && (
-            <p className="line-clamp-2 text-muted-foreground ml-6 mb-1">
-              {attachment.link.description}
-            </p>
-          )}
-          <p className="text-[11px] text-muted-foreground ml-6 truncate">{attachment.link?.url}</p>
         </div>
       );
     default:

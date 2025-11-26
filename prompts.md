@@ -183,3 +183,46 @@ Propmt 13 (enhancements in Chatbox):
 - where is emojis part?? and in emojies there should be stickers tab and gif tab as in whatsapp web
 - in attachment there is no sticker option and for event there should be proper UI for poll there should be proper UI in both bubble and input when selecting
 - you have missed many things and creating as you want not following whatsapp web
+
+prompt 14 (enhancements in Chatbox):y
+- in 1 message there will be 1 attachment (if user select multiple then send that much messages) - but attachment can be have message as well (like in whatsapp web)
+- if there is attachment there will be no too much padding in bubble (like in whatsapp web) - to improve UI
+- when open attachment select Menu its UI should have 1 Icon + text (like in whatsapp web)
+- for emojis (whether on message react and Input use a proper Library for emojis) - as in whatsapp web
+- If there is a 1 Emoji in message show that emoji little bit bigger without bubble (like in whatsapp web) - same if emojis 2 then little bit bigger but not too much with bubble - and same if 3 or 4
+
+Prompt 15 (enhancements in Chatbox):
+- bro for Multiple Attachments there should be multiple messages (if user have selected 5 images then send 5 messages but when nexttime user open that chat then show all attachments in 1 bubble as in whatsapp)
+- for emojis use "@ferrucc-io/emoji-picker" for both message react and input
+- Message input should be little larger as in whatsapp web
+- if user have sent 1 emoji there will be no bubble but for 2 or more emojis there will be bubble as in whatsapp
+- in chatbox header there will be call options (audio and video both - also call scheduling option)
+- in input there should be 1 Voice Record option
+- when attaching attachment (a editor opening that UI is not good - should be in Full Screen of chatbox and UI should be good as in Production level app like whatsapp)
+
+
+Prompt 16 Strictly Follow instructions (enhancements in Chatbox):
+- message, chat header, list menu should have icon with every option
+- bro again if I select 5 images there should be 5 messages not 1 message (I have mentioned this thing many times)
+- please check "@ferrucc-io/emoji-picker" library properly (its not showing any emoji instead little card showing)
+- in message react option it should open emoji picker instead sub Menu (6, 7 emojis)
+- when click on voice record option it should record voice and showing recording UI over input (like in whatsapp)
+- plz again when user selected attachment instead opening dialog please show full screen editor (covering chatbox area as in whatsapp)
+- why link option in attachments ??? (I was talking about link we automatically detect link in input and show link preview in message bubble as well as in input)
+
+
+Prompt 17 Strictly Follow instructions (enhancements in Inbox and Chatbox):
+- When user select any attachment it should upload that to S3 (and then send to user but show message Bubble immediately to sender - so there is showing 0 delay)
+- Bro again you are attaching all attachments in 1 message (I message can only have 1 attachment that can be image, video or anything)
+- If user send 5 images at a time it should send 5 messages
+- when click to open emoji there should be 3 tabs (EMojis, Stickers, GIFs)
+- In chatbox header when user opening menu each option should have icon with text - same for Inbox list
+- when user click on React in message menu it should open emoji picker (for now not opening)
+- when user click on Mic Icon its showing progress second by second (but it should actually record voice and show that progress base on volume)
+- send that voice message as well
+- if message have any attachment there should not too much padding (for now its showing too much on poll, event, location, contact, etc)
+- when user click on create event or poll it should direct send instead showing in input
+- remove contact share attachment option
+- when click to send location it should open location picker and when user selected location and send it should send instead move to input
+- 1 message can only have 1 attachment (please please please follow this instruction)
+
