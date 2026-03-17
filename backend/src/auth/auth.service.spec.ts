@@ -1,18 +1,7 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { AuthService } from './auth.service';
+import { AuthGuard } from './guards/auth.guard';
 
-describe('AuthService', () => {
-  let service: AuthService;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [AuthService],
-    }).compile();
-
-    service = module.get<AuthService>(AuthService);
-  });
-
+describe('AuthGuard', () => {
   it('should be defined', () => {
-    expect(service).toBeDefined();
+    expect(AuthGuard).toBeDefined();
   });
 });

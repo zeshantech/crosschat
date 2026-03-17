@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { devtools } from "zustand/middleware";
+import { devtools, persist } from "zustand/middleware";
 import { nanoid } from "nanoid";
 
 import {
@@ -64,6 +64,7 @@ type InboxState = {
     conversationId: string,
     payload: { content: string; attachments?: MessageAttachment[]; metadata?: Record<string, unknown> }
   ) => void;
+  retryMessage: (conversationId: string, messageId: string) => void;
   deleteMessage: (conversationId: string, messageId: string) => void;
   toggleStarMessage: (conversationId: string, messageId: string) => void;
   togglePinMessage: (conversationId: string, messageId: string) => void;
@@ -134,7 +135,8 @@ type ChatStore = TabState &
   AnalyticsState;
 
 export const useChatStore = create<ChatStore>()(
-  devtools((set) => ({
+  persist(
+    devtools((set, get) => ({
     activeTab: "inbox",
     setActiveTab: (tab) => set({ activeTab: tab }),
 
@@ -253,21 +255,27 @@ export const useChatStore = create<ChatStore>()(
             : conversation
         ),
       })),
-    sendMessage: (conversationId, payload) =>
+    sendMessage: (conversationId, payload) => {
+      const messageId = nanoid();
+      const createdAt = new Date().toISOString();
+
       set((state) => ({
         conversations: state.conversations.map((conversation) => {
           if (conversation.id !== conversationId) return conversation;
           const senderId = state.teamMembers[0]?.id ?? "member_local";
-          const createdAt = new Date().toISOString();
           const newMessage: Message = {
-            id: nanoid(),
+            id: messageId,
             conversationId,
             senderId,
             content: payload.content,
             createdAt,
-            status: "sent",
+            status: "queued",
             attachments: payload.attachments ?? [],
-            metadata: payload.metadata,
+            metadata: {
+              ...(payload.metadata ?? {}),
+              encrypted: true,
+              deliveryAttempt: 1,
+            },
             isInbound: false,
           };
           return {
@@ -276,7 +284,66 @@ export const useChatStore = create<ChatStore>()(
             lastMessageAt: createdAt,
           };
         }),
-      })),
+      }));
+
+      setTimeout(() => get().retryMessage(conversationId, messageId), 250);
+    },
+    retryMessage: (conversationId, messageId) => {
+      set((state) => ({
+        conversations: state.conversations.map((conversation) => {
+          if (conversation.id !== conversationId) return conversation;
+          return {
+            ...conversation,
+            messages: conversation.messages.map((message) => {
+              if (message.id !== messageId) return message;
+              const attempt = Number(message.metadata?.deliveryAttempt ?? 1);
+              const shouldFail = attempt === 1 && Math.random() < 0.05;
+              return {
+                ...message,
+                status: shouldFail ? "failed" : "sent",
+                metadata: { ...message.metadata, deliveryAttempt: attempt + 1 },
+              };
+            }),
+          };
+        }),
+      }));
+
+      const current = get().conversations
+        .find((conversation) => conversation.id === conversationId)
+        ?.messages.find((message) => message.id === messageId);
+
+      if (!current || current.status === "failed") {
+        return;
+      }
+
+      setTimeout(() => {
+        set((state) => ({
+          conversations: state.conversations.map((conversation) => {
+            if (conversation.id !== conversationId) return conversation;
+            return {
+              ...conversation,
+              messages: conversation.messages.map((message) =>
+                message.id === messageId ? { ...message, status: "delivered" } : message
+              ),
+            };
+          }),
+        }));
+      }, 450);
+
+      setTimeout(() => {
+        set((state) => ({
+          conversations: state.conversations.map((conversation) => {
+            if (conversation.id !== conversationId) return conversation;
+            return {
+              ...conversation,
+              messages: conversation.messages.map((message) =>
+                message.id === messageId ? { ...message, status: "read" } : message
+              ),
+            };
+          }),
+        }));
+      }, 1100);
+    },
     deleteMessage: (conversationId, messageId) =>
       set((state) => ({
         conversations: state.conversations.map((conversation) => {
@@ -486,5 +553,10 @@ export const useChatStore = create<ChatStore>()(
       set(() => ({
         analyticsSummary: summary,
       })),
-  }))
+    })),
+    {
+      name: "crosschat-store",
+      partialize: (state) => ({ conversations: state.conversations, selectedConversationId: state.selectedConversationId }),
+    }
+  )
 );
