@@ -8,6 +8,7 @@ const HOST = process.env.HOST || `http://localhost:${PORT}`;
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.enableCors({ origin: true });
 
   await app.listen(PORT);
   logger.log(`Application is running on: ${HOST}`);
