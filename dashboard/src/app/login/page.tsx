@@ -13,11 +13,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSupabaseBrowserClient } from "@/lib/supabase/client";
 
-type PhoneAuthFormValues = {
-  phone: string;
-  otp: string;
-};
-
 const phoneSchema = yup.object({
   phone: yup
     .string()
@@ -43,7 +38,7 @@ export default function LoginPage() {
     [stage]
   );
 
-  const form = useForm<PhoneAuthFormValues>({
+  const form = useForm({
     resolver,
     defaultValues: { phone: "", otp: "" },
   });
@@ -64,7 +59,7 @@ export default function LoginPage() {
     } else {
       const { error } = await supabase.auth.verifyOtp({
         phone: values.phone,
-        token: values.otp,
+        token: values.otp ?? "",
         type: "sms",
       });
       if (error) {

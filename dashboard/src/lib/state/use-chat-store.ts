@@ -12,6 +12,7 @@ import {
   mockTeamMembers,
 } from "@/lib/mock-data";
 import { getPlatformMeta } from "@/lib/platforms";
+import { fetchConversations, postMessage } from "@/lib/chat-api";
 import {
   AnalyticsSummary,
   Conversation,
@@ -63,7 +64,10 @@ type InboxState = {
   sendMessage: (
     conversationId: string,
     payload: { content: string; attachments?: MessageAttachment[]; metadata?: Record<string, unknown> }
-  ) => void;
+  ) => Promise<void>;
+  loadConversations: () => Promise<void>;
+  appendInboundMessage: (conversationId: string, message: Message) => void;
+  updateMessageStatus: (conversationId: string, messageId: string, status: Message["status"]) => void;
   deleteMessage: (conversationId: string, messageId: string) => void;
   toggleStarMessage: (conversationId: string, messageId: string) => void;
   togglePinMessage: (conversationId: string, messageId: string) => void;
@@ -253,29 +257,100 @@ export const useChatStore = create<ChatStore>()(
             : conversation
         ),
       })),
-    sendMessage: (conversationId, payload) =>
+    sendMessage: async (conversationId, payload) => {
+      const senderId = useChatStore.getState().teamMembers[0]?.id ?? "member_local";
+      const optimisticMessage: Message = {
+        id: nanoid(),
+        conversationId,
+        senderId,
+        content: payload.content,
+        createdAt: new Date().toISOString(),
+        status: "queued",
+        attachments: payload.attachments ?? [],
+        metadata: payload.metadata,
+        isInbound: false,
+      };
+
       set((state) => ({
-        conversations: state.conversations.map((conversation) => {
-          if (conversation.id !== conversationId) return conversation;
-          const senderId = state.teamMembers[0]?.id ?? "member_local";
-          const createdAt = new Date().toISOString();
-          const newMessage: Message = {
-            id: nanoid(),
-            conversationId,
-            senderId,
-            content: payload.content,
-            createdAt,
-            status: "sent",
-            attachments: payload.attachments ?? [],
-            metadata: payload.metadata,
-            isInbound: false,
-          };
-          return {
-            ...conversation,
-            messages: [...conversation.messages, newMessage],
-            lastMessageAt: createdAt,
-          };
-        }),
+        conversations: state.conversations.map((conversation) =>
+          conversation.id === conversationId
+            ? {
+                ...conversation,
+                messages: [...conversation.messages, optimisticMessage],
+                lastMessageAt: optimisticMessage.createdAt,
+              }
+            : conversation
+        ),
+      }));
+
+      try {
+        const created = await postMessage({ conversationId, senderId, content: payload.content });
+        set((state) => ({
+          conversations: state.conversations.map((conversation) => {
+            if (conversation.id !== conversationId) return conversation;
+            return {
+              ...conversation,
+              messages: conversation.messages.map((message) =>
+                message.id === optimisticMessage.id
+                  ? {
+                      ...message,
+                      id: created.id,
+                      status: created.status,
+                      createdAt: created.createdAt,
+                    }
+                  : message
+              ),
+              lastMessageAt: created.createdAt,
+            };
+          }),
+        }));
+      } catch {
+        set((state) => ({
+          conversations: state.conversations.map((conversation) => {
+            if (conversation.id !== conversationId) return conversation;
+            return {
+              ...conversation,
+              messages: conversation.messages.map((message) =>
+                message.id === optimisticMessage.id ? { ...message, status: "failed" } : message
+              ),
+            };
+          }),
+        }));
+      }
+    },
+    loadConversations: async () => {
+      try {
+        const conversations = await fetchConversations();
+        set(() => ({ conversations }));
+      } catch {
+        // fall back to seeded mock data
+      }
+    },
+    appendInboundMessage: (conversationId, message) =>
+      set((state) => ({
+        conversations: state.conversations.map((conversation) =>
+          conversation.id === conversationId
+            ? {
+                ...conversation,
+                unreadCount: conversation.unreadCount + 1,
+                lastMessageAt: message.createdAt,
+                messages: [...conversation.messages, message],
+              }
+            : conversation
+        ),
+      })),
+    updateMessageStatus: (conversationId, messageId, status) =>
+      set((state) => ({
+        conversations: state.conversations.map((conversation) =>
+          conversation.id === conversationId
+            ? {
+                ...conversation,
+                messages: conversation.messages.map((message) =>
+                  message.id === messageId ? { ...message, status } : message
+                ),
+              }
+            : conversation
+        ),
       })),
     deleteMessage: (conversationId, messageId) =>
       set((state) => ({

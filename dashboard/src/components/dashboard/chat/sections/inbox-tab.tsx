@@ -109,6 +109,7 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { getPlatformMeta } from "@/lib/platforms";
+import { useChatRealtime } from "@/hooks/use-chat-realtime";
 import { useChatStore } from "@/lib/state/use-chat-store";
 import type {
   Conversation,
@@ -347,6 +348,8 @@ export function InboxView() {
       selectConversation(null);
     }
   }, [visibleConversations, selectConversation, selectedConversationId]);
+
+  useChatRealtime(selectedConversationId);
 
   const selectedConversation = conversations.find(
     (conversation) => conversation.id === selectedConversationId
