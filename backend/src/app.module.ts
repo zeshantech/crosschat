@@ -10,6 +10,7 @@ import { TeamModule } from './team/team.module';
 import { CustomersModule } from './customers/customers.module';
 import { ConversationsModule } from './conversations/conversations.module';
 import { MessagesModule } from './messages/messages.module';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { MessagesModule } from './messages/messages.module';
     CustomersModule,
     ConversationsModule,
     MessagesModule,
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [AppService],

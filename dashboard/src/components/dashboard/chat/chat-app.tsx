@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+
 import {
   BarChart3,
   Bell,
@@ -37,7 +39,11 @@ const PRIMARY_TABS = [
 ];
 
 export function ChatAppShell() {
-  const { activeTab, setActiveTab, teamMembers } = useChatStore();
+  const { activeTab, setActiveTab, teamMembers, loadConversations } = useChatStore();
+
+  useEffect(() => {
+    void loadConversations();
+  }, [loadConversations]);
   const owner = teamMembers.find((member) => member.role === "owner") ?? teamMembers[0];
 
   const renderPanel = () => {
